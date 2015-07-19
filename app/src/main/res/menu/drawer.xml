@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:checkableBehavior="single">
+
+        <item
+            android:id="@+id/drawer_plan"
+            android:checked="true"
+            android:icon="@drawable/plan"
+            android:title="@string/menu.plan" />
+
+        <item
+            android:id="@+id/drawer_work"
+            android:icon="@drawable/truck"
+            android:title="@string/menu.work" />
+
+        <item
+            android:id="@+id/drawer_fuel"
+            android:icon="@drawable/fuel"
+            android:title="@string/menu.fuel" />
+
+        <item
+            android:id="@+id/drawer_docwork"
+            android:icon="@drawable/doc"
+            android:title="@string/menu.doc.work" />
+
+        <item
+            android:id="@+id/drawer_docfuel"
+            android:icon="@drawable/doc"
+            android:title="@string/menu.doc.fuel" />
+
+        <item
+            android:id="@+id/drawer_cash"
+            android:icon="@drawable/cash_multiple"
+            android:title="@string/menu.cash" />
+
+        <item
+            android:id="@+id/drawer_check"
+            android:icon="@drawable/check"
+            android:title="@string/menu.check" />
+
+        <item
+            android:id="@+id/drawer_sick"
+            android:icon="@drawable/sick"
+            android:title="@string/menu.sick" />
+
+        <item
+            android:id="@+id/drawer_weight"
+            android:icon="@drawable/scale"
+            android:title="@string/menu.reserve.weight" />
+
+        <item
+            android:id="@+id/drawer_logout"
+            android:icon="@drawable/logout"
+            android:title="@string/menu.logout" />
+
+    </group>
+
+
+</menu>

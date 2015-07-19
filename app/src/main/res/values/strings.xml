@@ -1,0 +1,68 @@
+<resources>
+    <string name="app_name">TMS</string>
+    <string name="refresh">Refresh</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="action_example">Example !</string>
+    <string name="title_fab_animations">FAB Animation</string>
+    <string name="title_activity_toolbar_test">ToolbarTestActivity</string>
+    <string name="title_activity_nav_drawer">NavDrawerActivity</string>
+    <string name="title_activity_animate_toolbar">Animate Toolbar</string>
+    <string name="title_activity_imagelist">List Picture</string>
+
+    <string name="menu.plan">ยืนยันเปิดงาน</string>
+    <string name="menu.work">คำสั่งวิ่งงาน</string>
+    <string name="menu.fuel">เติมเชื้อเพลิง</string>
+    <string name="menu.doc.work">ใบงานขนส่ง</string>
+    <string name="menu.doc.fuel">ใบเบิกเชื้อเพลิง</string>
+    <string name="menu.cash">เงินค่าเที่ยว</string>
+    <string name="menu.check">ตรวจสภาพรถ</string>
+    <string name="menu.sick">การลา</string>
+    <string name="menu.reserve.weight">จองคิวห้องชั่ง</string>
+    <string name="menu.logout">ออกจากระบบ</string>
+
+    <string name="noresult">[]</string>
+    <string name="result.error">error</string>
+
+    <string-array name="usefuel_array">
+        <item>1. สถานีเชื้อเพลิง</item>
+        <item>2. เอกสาร/ใบเสร็จ</item>
+        <item>3. อื่นๆ</item>
+    </string-array>
+
+    <string-array name="received_array">
+        <item>1. ภาพใบรับสินค้าก่อนขึ้นสินค้าเสร็จ</item>
+        <item>2. ภาพขณะขึ้นสินค้าหลัก/สินค้า Match</item>
+        <item>3. ภาพคลุมผ้าใบ,ผ้าเขียว (ออกเดินทาง)</item>
+        <item>4. ภาพการชั่งน้ำหนักสินค้า</item>
+        <item>5. ภาพใบรับสินค้าหลังขึ้นสินค้าเสร็จ</item>
+    </string-array>
+
+    <string-array name="list_pic">
+        <item>1. สถานี</item>
+        <item>2. สินค้า</item>
+        <item>3. เอกสาร</item>
+        <item>4. รถ</item>
+        <item>5. ห้องชั่ง</item>
+        <item>6. ล้างรถ</item>
+        <item>7. แจ้งปัญหา</item>
+        <item>8. อื่นๆ</item>
+    </string-array>
+
+    <string-array name="list_signature">
+        <item>1. ลงชื่อรับสินค้า</item>
+        <item>2. ลงชื้อส่งสินค้า</item>
+    </string-array>
+
+    <string-array name="submited_array">
+        <item>1. ภาพใบส่งสินค้า DO ก่อนลงสินค้าเสร็จ</item>
+        <item>2. ภาพการชั่งน้ำหนักสินค้า</item>
+        <item>3. ภาพขณะลงสินค้า/ลงเสร็จ</item>
+        <item>4. ภาพใบส่งสินค้า DOหลังลงสินค้าเสร็จ</item>
+    </string-array>
+
+    <string-array name="closetask_array">
+        <item>1. ภาพตนเอง ระบุ ต้นทาง-ปลายทาง</item>
+        <item>2. ภาพใบ DO และทำการปิดงาน ส่งเอกสารให้พนักงาน GPS</item>
+    </string-array>
+</resources>

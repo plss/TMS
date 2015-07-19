@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/CameraLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_gravity="center"
+    android:background="#FFFFFF"
+    android:orientation="horizontal" >
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom">
+
+        <ImageButton
+            android:id="@+id/switchcamera"
+            android:layout_width="50dp"
+            android:layout_height="40dp"
+            android:layout_gravity="center_horizontal"
+            android:background="#00000000"
+            android:padding="2dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/swcam"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true" />
+
+        <ImageButton
+            android:id="@+id/capture_image"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:layout_gravity="center"
+            android:background="#00000000"
+            android:scaleType="fitCenter"
+            android:src="@drawable/camera"
+            android:layout_centerInParent="true" />
+
+        <ImageButton
+            android:id="@+id/Flash"
+            android:layout_width="50dp"
+            android:layout_height="40dp"
+            android:layout_gravity="center_horizontal"
+            android:background="#00000000"
+            android:padding="2dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/pnflash"
+            android:layout_alignParentLeft="true"
+            android:layout_centerVertical="true" />
+    </RelativeLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_vertical">
+
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/Header"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="take Photo"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:textColor="#00FF7F"
+        android:textSize="24dp"
+        android:layout_gravity="center_horizontal" />
+
+    <FrameLayout
+        android:id="@+id/CameraFrame"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center" >
+
+        <SurfaceView
+            android:id="@+id/surfaceview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:layout_weight="100"
+            android:padding="2dp" />
+
+        <FrameLayout
+            android:id="@+id/FocusArea"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center" >
+        </FrameLayout>
+
+    </FrameLayout>
+
+</FrameLayout>

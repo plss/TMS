@@ -1,0 +1,94 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    android:background="#000">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/round_border">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:id="@+id/frameCam">
+
+        </FrameLayout>
+
+        <SurfaceView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/surfaceView"
+            android:layout_centerInParent="true" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="New Text"
+            android:id="@+id/camMode"
+            android:textColor="#FFF"
+            android:textSize="24dp"
+            android:textStyle="bold"
+            android:textAlignment="center"
+            android:layout_centerInParent="true"
+            android:layout_alignParentTop="true"
+            android:layout_marginTop="8dp" />
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="false"
+            android:layout_centerHorizontal="true"
+            android:layout_alignParentBottom="true"
+            android:layout_marginBottom="10dp">
+
+            <!--<ImageView
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:id="@+id/swCam"
+                android:src="@drawable/swcam"
+                android:layout_gravity="center_vertical"
+                android:layout_weight="1" />-->
+
+            <RelativeLayout
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content">
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="80dp"
+                    android:layout_toStartOf="@+id/captBtn"
+                    android:layout_alignParentBottom="true"
+                    android:layout_alignParentStart="false">
+
+                    <ImageView
+                        android:layout_width="50dp"
+                        android:layout_height="50dp"
+                        android:id="@+id/btnComment"
+                        android:layout_centerInParent="true"
+                        android:background="@drawable/comment" />
+                </RelativeLayout>
+
+                <ImageView
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:id="@+id/captBtn"
+                    android:src="@drawable/capture"
+                    android:layout_alignParentBottom="true"
+                    android:layout_centerHorizontal="true"
+                    android:layout_weight="1" />
+            </RelativeLayout>
+
+            <!--<ImageView
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:id="@+id/flashCam"
+                android:src="@drawable/csflash"
+                android:layout_gravity="center_vertical"
+                android:layout_weight="1" />-->
+        </LinearLayout>
+    </RelativeLayout>
+
+</RelativeLayout>

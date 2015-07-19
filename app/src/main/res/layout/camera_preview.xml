@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minWidth="10000dp"
+    android:id="@+id/FramePreview"
+    android:minHeight="10000dp">
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/previewPic"
+        android:layout_weight="1"
+        android:nestedScrollingEnabled="false"
+        android:adjustViewBounds="true"
+        android:minWidth="10000dp"
+        android:minHeight="10000dp" />
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="50dp">
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="fill_parent"
+            android:text="ตกลง"
+            android:id="@+id/yes"
+            android:background="#FAFAFA"
+            android:textColor="@color/abc_search_url_text"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:layout_weight="1"
+            android:textSize="20dp" />
+        <View
+            android:layout_width="1px"
+            android:layout_height="match_parent"
+            android:background="#1F000000">
+        </View>
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="fill_parent"
+            android:text="ถ่ายใหม่"
+            android:id="@+id/no"
+            android:background="#FAFAFA"
+            android:textColor="@color/abc_search_url_text"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:layout_weight="1"
+            android:textSize="20dp" />
+    </LinearLayout>
+</LinearLayout>

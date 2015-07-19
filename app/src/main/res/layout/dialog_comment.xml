@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp"
+        android:background="@drawable/round_border"
+        android:id="@+id/inputCommentField">
+
+        <AutoCompleteTextView
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/inputComment"
+            android:lines="3"
+            android:layout_margin="16dp"
+            android:background="#FFF"
+            android:layout_below="@+id/txtComment" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ใส่ข้อความ"
+            android:id="@+id/txtComment"
+            android:textSize="@dimen/abc_text_size_headline_material"
+            android:layout_centerHorizontal="true"
+            android:textColor="#FFF" />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ตกลง"
+            android:id="@+id/button"
+            android:layout_below="@+id/inputComment"
+            android:background="#FFF"
+            android:layout_marginLeft="32dp"
+            android:layout_marginRight="32dp"
+            android:layout_centerHorizontal="true" />
+
+    </RelativeLayout>
+
+</RelativeLayout>
