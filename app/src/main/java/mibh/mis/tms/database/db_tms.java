@@ -19,11 +19,12 @@ public class db_tms extends SQLiteOpenHelper {
     /* Database name */
     static final String dbName = "TMS_DB";
     static final String Tb_Img = "IMG_TMSMOBILE";
-    static final int versionnew = 2;
+    static final String Tb_Hashtag = "HASHTAG";
+    static final String Tb_HashtagValue = "HASHTAG_VALUE";
+    static final int versionnew = 3;
     static int versionold;
 
-	/* field name for IMAGE_TBL */
-
+    /* field name for IMAGE_TBL */
     static final String Im_WorkHid = "Work_id";
     static final String Im_Group_Type = "Group_Type"; //fuel
     static final String Im_Type_img = "Type_img";
@@ -34,6 +35,19 @@ public class db_tms extends SQLiteOpenHelper {
     static final String Im_Date_img = "Date_img";
     static final String Im_Status_Update = "Stat_Upd";
     static final String Im_Comment = "Comment_img";
+
+    /* field name for HASHTAG */
+    static final String ht_tb_name = "TABLENAME";
+    static final String ht_last_date = "LASTSERVERDATE";
+
+    /* field name for HASHTAG_VALUE */
+    static final String htv_list_id = "LIST_ID";
+    static final String htv_list_name = "LIST_NAME";
+    static final String htv_group_id = "GROUP_ID";
+    static final String htv_type_id = "TYPE_ID";
+    static final String htv_server_date = "SERVERDATE";
+    static final String htv_status = "STATUS";
+
 
     /****************************< Function comment >*************************/
     /** NAME		 : -			                                      	**/
@@ -51,7 +65,7 @@ public class db_tms extends SQLiteOpenHelper {
 
         Log.d("march", "versionnew " + String.valueOf(versionnew) + " nowVersion " + String.valueOf(db.getVersion()));
         if (versionnew != db.getVersion()) {
-            onUpgrade(db, versionnew, db.getVersion());
+            onUpgrade(db, db.getVersion(), versionnew);
         }
 
     }
@@ -91,6 +105,15 @@ public class db_tms extends SQLiteOpenHelper {
                 + Im_Status_Update + " TEXT ,"
                 + Im_Comment + " TEXT )");
 
+        db.execSQL("CREATE TABLE " + Tb_Hashtag + " (" + ht_tb_name + " TEXT ," + ht_last_date + " TEXT )");
+
+        db.execSQL("CREATE TABLE " + Tb_HashtagValue + " (" + htv_list_id + " TEXT ,"
+                + htv_list_name + " TEXT ,"
+                + htv_group_id + " TEXT ,"
+                + htv_type_id + " TEXT ,"
+                + htv_server_date + " TEXT ,"
+                + htv_status + " TEXT )");
+
         Log.d("march", "create Db");
 
     }
@@ -111,6 +134,21 @@ public class db_tms extends SQLiteOpenHelper {
         if (oldVersion < 2) {
             String ALTER_TBL = "ALTER TABLE " + Tb_Img + " ADD COLUMN " + Im_Comment + " TEXT";
             db.execSQL(ALTER_TBL);
+        }
+        if (oldVersion < 3) {
+            db.setLocale(Locale.getDefault());
+            db.setLockingEnabled(true);
+            db.execSQL("CREATE TABLE " + Tb_Hashtag + " (" + ht_tb_name + " TEXT ,"
+                    + ht_last_date + " TEXT )");
+            Log.d("march", "create Db1");
+
+            db.execSQL("CREATE TABLE " + Tb_HashtagValue + " (" + htv_list_id + " TEXT ,"
+                    + htv_list_name + " TEXT ,"
+                    + htv_group_id + " TEXT ,"
+                    + htv_type_id + " TEXT ,"
+                    + htv_server_date + " TEXT ,"
+                    + htv_status + " TEXT )");
+            Log.d("march", "create Db2");
         }
 
 //		 db.execSQL("CREATE TABLE IF NOT EXISTS "+ this.Tb_Station +" ("
@@ -166,6 +204,7 @@ public class db_tms extends SQLiteOpenHelper {
         return formattedDate;
     }
 
+
     /****************************< Function comment >*************************/
     /** NAME		 : -			                                      	**/
     /** PARAMETERS	 : none		                                           	**/
@@ -209,7 +248,7 @@ public class db_tms extends SQLiteOpenHelper {
 
     @SuppressLint("SimpleDateFormat")
     String GetKeyContract_req() {
-		/* Add image capture time */
+        /* Add image capture time */
         Calendar c = Calendar.getInstance();
         SimpleDateFormat date = new SimpleDateFormat("yyMM");
         String formattedDate = date.format(c.getTime());
@@ -306,7 +345,7 @@ public class db_tms extends SQLiteOpenHelper {
         cv.put(this.Im_Comment, vComment);
 
         db.insert(this.Tb_Img, null, cv);
-		/*db.close();*/
+        /*db.close();*/
 
         return Date;
     }
@@ -449,7 +488,6 @@ public class db_tms extends SQLiteOpenHelper {
         String[] whereArgs = new String[]{filename};
         long l;
         l = db.update(this.Tb_Img, cv, where, whereArgs);
-
         return l;
   /*db.close();*/
     }
@@ -460,6 +498,78 @@ public class db_tms extends SQLiteOpenHelper {
             db.close();
             Log.d("march", "db.close");
         }
+    }
+
+    public long UpsertTbHashtag(String name, String lastdate) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues cv = new ContentValues();
+        if (lastdate != null) {
+            cv.put(ht_last_date, lastdate);
+        }
+        String where = ht_tb_name + "=?";
+        String[] whereArgs = new String[]{name};
+        long i = db.update(Tb_Hashtag, cv, where, whereArgs);
+        if (i == 0) {
+            ContentValues cv2 = new ContentValues();
+            cv2.put(ht_tb_name, name);
+            cv2.put(ht_last_date, lastdate);
+            i = db.insert(Tb_Hashtag, null, cv2);
+            Log.d("Insert", i + "");
+        }
+        db.close();
+        return i;
+    }
+
+    public long UpsertHashtag(String LIST_ID, String LIST_NAME, String GROUP_ID, String TYPE_ID, String SERVERDATE, String STATUS) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues cv = new ContentValues();
+        cv.put(htv_list_name, LIST_NAME);
+        cv.put(htv_group_id, GROUP_ID);
+        cv.put(htv_type_id, TYPE_ID);
+        cv.put(htv_server_date, SERVERDATE);
+        cv.put(htv_status, STATUS);
+        String where = htv_list_id + "=?";
+        String[] whereArgs = new String[]{LIST_ID};
+        long i = db.update(Tb_HashtagValue, cv, where, whereArgs);
+        if (i == 0) {
+            ContentValues cv2 = new ContentValues();
+            cv2.put(htv_list_id, LIST_ID);
+            cv2.put(htv_list_name, LIST_NAME);
+            cv2.put(htv_group_id, GROUP_ID);
+            cv2.put(htv_type_id, TYPE_ID);
+            cv2.put(htv_server_date, SERVERDATE);
+            cv2.put(htv_status, STATUS);
+            i = db.insert(Tb_HashtagValue, null, cv2);
+        }
+        db.close();
+        return i;
+    }
+
+    Cursor GetDateHashtag(String name) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        Cursor cur = db.rawQuery("Select * from " + Tb_Hashtag + " WHERE " + ht_tb_name + " = '" + name + "' ", null);
+        return cur;
+    }
+
+    Cursor GetHashtag() {
+        SQLiteDatabase db = this.getWritableDatabase();
+        Cursor cur = db.rawQuery("Select * from " + Tb_HashtagValue + " ORDER BY " + htv_list_name + " ASC", null);
+        return cur;
+    }
+
+    Cursor GetHashtagByGtypeAndImgType(String vGroup_Type, String vImg_Type) {
+        SQLiteDatabase db = this.getWritableDatabase();
+            Cursor cur = db.rawQuery("Select * from " + Tb_HashtagValue + " WHERE " + htv_status + " = 'Active' and "
+                + htv_group_id + " ='" + vGroup_Type + "' and "
+                + htv_type_id + " ='" + vImg_Type + "' ORDER BY " + htv_list_name + " ASC", null);
+        return cur;
+    }
+
+    Cursor GetHashtagByGtype(String vGroup_Type) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        Cursor cur = db.rawQuery("Select * from " + Tb_HashtagValue + " WHERE " + htv_status + " = 'Active' and "
+                + htv_group_id + " ='" + vGroup_Type + "' ORDER BY " + htv_list_name + " ASC", null);
+        return cur;
     }
 
 }

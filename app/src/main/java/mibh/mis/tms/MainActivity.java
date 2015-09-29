@@ -1,14 +1,12 @@
 package mibh.mis.tms;
 
-import android.app.AlertDialog;
-import android.app.Notification;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
+import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.NavigationView;
@@ -17,6 +15,7 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -24,22 +23,26 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
+import com.google.zxing.BarcodeFormat;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
-import java.util.Timer;
-import java.util.TimerTask;
 
 import mibh.mis.tms.data.FuelData;
 import mibh.mis.tms.data.PlanData;
 import mibh.mis.tms.data.WorkData;
+import mibh.mis.tms.database.img_tms;
+import mibh.mis.tms.qrcode.Content;
+import mibh.mis.tms.qrcode.QRCodeEncoder;
 import mibh.mis.tms.service.CallService;
-import mibh.mis.tms.service.UploadPic;
+import mibh.mis.tms.service.CheckOnline;
+import mibh.mis.tms.service.validateLatLng;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -48,9 +51,9 @@ public class MainActivity extends AppCompatActivity {
     NavigationView mNavigationView;
     FrameLayout mContentFrame;
     private int mCurrentSelectedPosition;
-    private static Timer timer;
     private SharedPreferences sp;
     private SharedPreferences.Editor editor;
+    private CheckOnline check;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_nav_drawer);
 
         sp = getSharedPreferences("info", Context.MODE_PRIVATE);
+        check = new CheckOnline(this);
 
         mDrawerLayout = (DrawerLayout) findViewById(R.id.nav_drawer);
         mNavigationView = (NavigationView) findViewById(R.id.nav_view);
@@ -65,54 +69,25 @@ public class MainActivity extends AppCompatActivity {
 
         setUpToolbar();
         setUpNavDrawer();
-
-        mCurrentSelectedPosition = (sp.getBoolean("WORK", true)) ? 1 : 0;
+        //Log.d("TEST Check", Calendar.getInstance().getTimeInMillis() / (24 * 60 * 60 * 1000) + " " + sp.getLong("lastcheckstatus", 0) / (24 * 60 * 60 * 1000));
+        if (Calendar.getInstance().getTimeInMillis() / (24 * 60 * 60 * 1000) != sp.getLong("lastcheckstatus", 0) / (24 * 60 * 60 * 1000)) {
+            mCurrentSelectedPosition = 5;
+            editor = sp.edit();
+            editor.putString("statuscheckdriver", "");
+            editor.putString("statuschecktruck", "");
+            editor.apply();
+        } else if (sp.getBoolean("WORK", true)) {
+            mCurrentSelectedPosition = 1;
+        } else {
+            mCurrentSelectedPosition = 0;
+        }
+        //mCurrentSelectedPosition = (sp.getBoolean("WORK", true)) ? 1 : 0;
 
         Menu menu = mNavigationView.getMenu();
         menu.getItem(mCurrentSelectedPosition).setChecked(true);
         selectedItem(mCurrentSelectedPosition);
 
-        //new db_tms(MainActivity.this).EmptyAllTable();
-        if (timer != null) {
-            timer.cancel();
-        }
-        timer = new Timer();
-        timer.schedule(new CheckNotification(), 0, 1000 * 60 * 30);
-
     }
-
-    class CheckNotification extends TimerTask {
-        public void run() {
-            String result = new CallService().checkNotify(sp.getString("truckid", ""));
-            Log.d("Result Notify", result);
-            if (!result.equals("[]") && !result.equals("null")) {
-                try {
-                    JSONArray data = new JSONArray(result);
-                    JSONObject c = data.getJSONObject(0);
-                    NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-                    Notification notification = new Notification(R.mipmap.ic_launcher, "มีการแจ้งเตือนไหม่", System.currentTimeMillis());
-                    notification.flags |= Notification.FLAG_AUTO_CANCEL;
-                    String Title = "ข้อความใหม่";
-                    String[] splitDot = c.getString("CO_ITEM").split("\\.");
-                    String Message = "มีงานเข้า " + splitDot[0] + " งาน";
-                    Intent intent = new Intent(MainActivity.this, Login.class);
-                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-                    PendingIntent activity = PendingIntent.getActivity(MainActivity.this, 0, intent, 0);
-                    notification.setLatestEventInfo(MainActivity.this, Title, Message, activity);
-                    //notification.number += 1;
-                    notification.flags |= Notification.FLAG_AUTO_CANCEL;
-                    notification.defaults = Notification.DEFAULT_SOUND;
-                    notification.defaults = Notification.DEFAULT_VIBRATE;
-                    notificationManager.notify(0, notification);
-                } catch (Exception e) {
-                    Log.d("Error creNotify", e.toString());
-                }
-            }
-
-            new UploadPic(MainActivity.this).execute();
-        }
-    }
-
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -130,8 +105,13 @@ public class MainActivity extends AppCompatActivity {
 
         switch (item.getItemId()) {
             case R.id.refresh:
-                Toast.makeText(MainActivity.this, "Refresh", Toast.LENGTH_LONG).show();
-                new RefreshTask(sp.getString("truckid", ""), sp.getString("empid", "")).execute();
+                if (check.isOnline()) {
+                    Toast.makeText(MainActivity.this, "Refresh", Toast.LENGTH_LONG).show();
+                    new RefreshTask(sp.getString("truckid", ""), sp.getString("empid", "")).execute();
+                } else {
+                    showAlertDialog();
+                }
+
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -153,29 +133,64 @@ public class MainActivity extends AppCompatActivity {
                 mToolbar.setTitle(R.string.menu_fuel);
                 fragment = new FuelList();
                 break;
-            case 3:
+            /*case 3:
                 mToolbar.setTitle(R.string.menu_doc_work);
                 fragment = new DocheaderPage();
                 break;
             case 4:
                 mToolbar.setTitle(R.string.menu_doc_fuel);
                 fragment = new DocfuelPage();
+                break;*/
+            case 3:
+                if (check.isOnline()) {
+                    fragment = new Income();
+                    mToolbar.setTitle(R.string.menu_cash);
+                } else {
+                    showAlertDialog();
+                }
+                break;
+            case 4:
+                if (check.isOnline()) {
+                    fragment = new PaySlip();
+                    mToolbar.setTitle(R.string.menu_slip);
+                } else {
+                    showAlertDialog();
+                }
                 break;
             case 5:
-                AlertDialog.Builder dialogComming = new AlertDialog.Builder(MainActivity.this);
-                dialogComming.setMessage("พร้อมใช้เร็วๆนี้ ..");
-                dialogComming.setPositiveButton("ตกลง",
-                        new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                dialog.dismiss();
-                            }
-                        });
-                dialogComming.show();
-                //mToolbar.setTitle(R.string.menu_cash);
+                if (check.isOnline()) {
+                    fragment = new Maintenance();
+                    mToolbar.setTitle(R.string.menu_check);
+                } else {
+                    showAlertDialog();
+                }
                 break;
             case 6:
-            case 7:
+                if (validateLatLng.check(sp)) {
+                    fragment = new CameraFragment();
+                    mToolbar.setTitle(R.string.menu_cam);
+                    Intent intent = new Intent(MainActivity.this, CameraMain.class);
+                    intent.putExtra("From", img_tms.GTYPE_OTHER);
+                    intent.putExtra("WOHEADER_DOCID", sp.getString("lastwork","OTHER"));
+                    intent.putExtra("ITEM", "10");
+                    intent.putExtra("Type_Img", img_tms.IMG_OTHER);
+                    startActivity(intent);
+                } else {
+                    AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(MainActivity.this);
+                    alertDialogBuilder.setMessage("กรุณารอข้อมูลสถานที่สักครู่");
+                    alertDialogBuilder.setNegativeButton("ตกลง",
+                            new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.cancel();
+                                }
+                            });
+                    AlertDialog alertDialog = alertDialogBuilder.create();
+                    alertDialog.show();
+                }
+
+                break;
+            /*case 8:
                 try {
                     Intent intent = getPackageManager().getLaunchIntentForPackage("doublea.mobile.kunna.camlocator");
                     intent.addCategory(Intent.CATEGORY_LAUNCHER);
@@ -193,8 +208,8 @@ public class MainActivity extends AppCompatActivity {
                             });
                     builderSingle.show();
                 }
-                break;
-            case 8:
+                break;*/
+            case 7:
                 try {
                     Intent intent = getPackageManager().getLaunchIntentForPackage("com.example.app.wmsonmobile");
                     intent.addCategory(Intent.CATEGORY_LAUNCHER);
@@ -213,7 +228,7 @@ public class MainActivity extends AppCompatActivity {
                     builderSingle.show();
                 }
                 break;
-            case 9:
+            case 8:
                 logOut();
                 Intent mainIntent = new Intent(MainActivity.this, Login.class);
                 startActivity(mainIntent);
@@ -222,7 +237,7 @@ public class MainActivity extends AppCompatActivity {
                 break;
         }
         if (fragment != null) {
-            if (!sp.getBoolean("WORK", true) && (position == 1 || position == 2 || position == 3 || position == 4)) {
+            if (!sp.getBoolean("WORK", true) && (position == 1 || position == 2)) {
                 AlertDialog.Builder builderSingle = new AlertDialog.Builder(MainActivity.this);
                 builderSingle.setMessage("คุณยังไม่ได้ยืนยันเปิดงาน");
                 builderSingle.setPositiveButton("ตกลง",
@@ -253,9 +268,36 @@ public class MainActivity extends AppCompatActivity {
 
     private void setUpNavDrawer() {
 
+        LinearLayout headerFrame = (LinearLayout) findViewById(R.id.headerFrame);
         TextView empName = (TextView) findViewById(R.id.empName);
         TextView empID = (TextView) findViewById(R.id.empID);
         TextView truckID = (TextView) findViewById(R.id.truckID);
+        headerFrame.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Dialog dialog = new Dialog(MainActivity.this);
+                dialog.requestWindowFeature(dialog.getWindow().FEATURE_NO_TITLE);
+                dialog.setContentView(R.layout.dialog_truckid);
+                dialog.setCancelable(true);
+                TextView truckidText = (TextView) dialog.findViewById(R.id.truckidText);
+                ImageView qrTruck = (ImageView) dialog.findViewById(R.id.qrTruck);
+                ImageView barTruck = (ImageView) dialog.findViewById(R.id.barTruck);
+                String txtTruck = sp.getString("truckid", "");
+                truckidText.setText(txtTruck);
+                int qrCodeDimention = 250;
+                try {
+                    QRCodeEncoder qrCodeEncoder = new QRCodeEncoder(txtTruck, null, Content.Type.TEXT, BarcodeFormat.QR_CODE.toString(), qrCodeDimention);
+                    Bitmap bitmap = qrCodeEncoder.encodeAsBitmap();
+                    qrTruck.setImageBitmap(bitmap);
+                    qrCodeEncoder = new QRCodeEncoder(txtTruck, null, Content.Type.TEXT, BarcodeFormat.CODE_39.toString(), qrCodeDimention);
+                    bitmap = qrCodeEncoder.encodeAsBitmap();
+                    barTruck.setImageBitmap(bitmap);
+                } catch (Exception e) {
+                    Log.d("Error TuckCode", e.toString());
+                }
+                dialog.show();
+            }
+        });
         empName.setText(sp.getString("firstname", "") + " " + sp.getString("lastname", ""));
         empID.setText("รหัสพนักงาน " + sp.getString("empid", ""));
         truckID.setText("เบอร์รถ " + sp.getString("truckid", ""));
@@ -285,27 +327,30 @@ public class MainActivity extends AppCompatActivity {
                     case R.id.drawer_fuel:
                         mCurrentSelectedPosition = 2;
                         break;
-                    case R.id.drawer_docwork:
+                    /*case R.id.drawer_docwork:
                         mCurrentSelectedPosition = 3;
                         break;
                     case R.id.drawer_docfuel:
                         mCurrentSelectedPosition = 4;
-                        break;
+                        break;*/
                     case R.id.drawer_cash:
-                        mCurrentSelectedPosition = 5;
+                        mCurrentSelectedPosition = 3;
+                        break;
+                    case R.id.drawer_slip:
+                        mCurrentSelectedPosition = 4;
                         break;
                     case R.id.drawer_check:
+                        mCurrentSelectedPosition = 5;
+                        break;
+                    case R.id.drawer_cam:
                         mCurrentSelectedPosition = 6;
                         break;
-                    case R.id.drawer_sick:
-                        mCurrentSelectedPosition = 7;
-                        break;
                     case R.id.drawer_weight:
-                        mCurrentSelectedPosition = 8;
+                        mCurrentSelectedPosition = 7;
                         break;
                     case R.id.drawer_logout:
                         Snackbar.make(mContentFrame, "Log Out", Snackbar.LENGTH_SHORT).show();
-                        mCurrentSelectedPosition = 9;
+                        mCurrentSelectedPosition = 8;
                         break;
                     default:
                         break;
@@ -324,21 +369,13 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-/*    @Override
-    protected void onStop() {
-        super.onStop();
-        Log.d("TEST","OnStop");
-
-    }*/
-
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Log.d("TEST","OnDestoy");
         new WorkData().clearWorkData();
         new PlanData().clearPlanData();
         new FuelData().clearFuelData();
-        new UploadPic(MainActivity.this).execute();
+        //new UploadPic(MainActivity.this).execute();
     }
 
     private void logOut() {
@@ -440,22 +477,60 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        @Override
-        protected void onCancelled() {
-            dialog.dismiss();
-        }
-
         public void showAlertDialog(Context context, String title, String message) {
-            AlertDialog alertDialog = new AlertDialog.Builder(context).create();
-            alertDialog.setTitle(title);
-            alertDialog.setMessage(message);
-            alertDialog.setButton("ตกลง", new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog, int which) {
-                    dialog.dismiss();
-                    finish();
-                }
-            });
+            AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(context);
+            alertDialogBuilder.setTitle(title);
+            alertDialogBuilder.setMessage(message);
+            alertDialogBuilder.setNegativeButton("ตกลง",
+                    new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
+                        }
+                    });
+            AlertDialog alertDialog = alertDialogBuilder.create();
             alertDialog.show();
         }
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (!check.isGpsEnable()) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+            builder.setCancelable(false);
+            builder.setMessage("กรุณาเปิด GPS ก่อนใช้งาน");
+            builder.setPositiveButton("ตกลง", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                    dialogInterface.dismiss();
+                    finish();
+                }
+            });
+            builder.show();
+        }
+    }
+
+    private void showAlertDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+        builder.setCancelable(true);
+        builder.setMessage("กรุณาเปิด Internet ก่อนใช้งาน");
+        builder.setPositiveButton("ตกลง", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                if (sp.getBoolean("WORK", true)) {
+                    mCurrentSelectedPosition = 1;
+                } else {
+                    mCurrentSelectedPosition = 0;
+                }
+                //mCurrentSelectedPosition = (sp.getBoolean("WORK", true)) ? 1 : 0;
+                Menu menu = mNavigationView.getMenu();
+                menu.getItem(mCurrentSelectedPosition).setChecked(true);
+                selectedItem(mCurrentSelectedPosition);
+                dialogInterface.dismiss();
+            }
+        });
+        builder.show();
+    }
+
 }

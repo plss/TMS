@@ -137,7 +137,7 @@ public class CallService {
         } catch (Exception e) {
             Log.d("Error version", e.toString());
         }
-        return "";
+        return "error";
     }
 
     public String genNewFuel(String WOHEADER_DOCID, String EMP_ID) {
@@ -279,4 +279,139 @@ public class CallService {
         }
     }
 
+    public String getHashtag(String date) {
+        try {
+            METHOD_NAME = "Get_data_hashtag";
+            soap_property = new SOAPWebserviceProperty();
+            soap_property.urlWebservice = urlMarch;
+            soap_property.namespaceWebservice = NAMESPACE;
+            SoapObject request = new SoapObject(NAMESPACE, METHOD_NAME);
+            request.addProperty("yyMMddHHmmss", date);
+            SoapSerializationEnvelope envelope = new SoapSerializationEnvelope(SoapEnvelope.VER11);
+            envelope.dotNet = true;
+            envelope.setOutputSoapObject(request);
+            HttpTransportSE androidHttpTransport = new HttpTransportSE(urlMarch);
+            androidHttpTransport.call(SOAP_ACTION_MARCH + METHOD_NAME, envelope);
+            SoapPrimitive result = (SoapPrimitive) envelope.getResponse();
+            String resultData = result.toString();
+            return resultData;
+        } catch (Exception e) {
+            Log.d("Error getHashtag", e.toString());
+            return "error";
+        }
+    }
+
+    public String getLastWork(String truckid) {
+        try {
+            METHOD_NAME = "Get_lastWork";
+            soap_property = new SOAPWebserviceProperty();
+            soap_property.urlWebservice = urlMarch;
+            soap_property.namespaceWebservice = NAMESPACE;
+            SoapObject request = new SoapObject(NAMESPACE, METHOD_NAME);
+            request.addProperty("Truck_Id", truckid);
+            SoapSerializationEnvelope envelope = new SoapSerializationEnvelope(SoapEnvelope.VER11);
+            envelope.dotNet = true;
+            envelope.setOutputSoapObject(request);
+            HttpTransportSE androidHttpTransport = new HttpTransportSE(urlMarch);
+            androidHttpTransport.call(SOAP_ACTION_MARCH + METHOD_NAME, envelope);
+            SoapPrimitive result = (SoapPrimitive) envelope.getResponse();
+            String resultData = result.toString();
+            return resultData;
+        } catch (Exception e) {
+            Log.d("Error getLastWork", e.toString());
+            return "error";
+        }
+    }
+
+    public String saveCheckDriver(String LASTWORK, String ITEM, String EMP_ID, String NAME_SURNAME, String STATUSDRIVER, String STATUSDRIVER_TH, String LATLNG, String LOCATION_NAME, String COMMENT_DRI) {
+        try {
+            //Log.d("TEST savedirver", LASTWORK + " " + ITEM + " " + EMP_ID + " " + NAME_SURNAME + " " + STATUSDRIVER + " " + STATUSDRIVER_TH + " " + LATLNG + " " + LOCATION_NAME + " " + COMMENT_DRI);
+            METHOD_NAME = "Save_CheckingDriver";
+            soap_property = new SOAPWebserviceProperty();
+            soap_property.urlWebservice = urlMarch;
+            soap_property.namespaceWebservice = NAMESPACE;
+            SoapObject request = new SoapObject(NAMESPACE, METHOD_NAME);
+
+            JSONObject polydata = new JSONObject();
+            polydata.put("LASTWORK", LASTWORK);
+            polydata.put("ITEM", ITEM);
+            polydata.put("EMP_ID", EMP_ID);
+            polydata.put("NAME_SURNAME", NAME_SURNAME);
+            polydata.put("STATUSDRIVER", STATUSDRIVER);
+            polydata.put("STATUSDRIVER_TH", STATUSDRIVER_TH);
+            polydata.put("LATLNG", LATLNG);
+            polydata.put("LOCATION_NAME", LOCATION_NAME);
+            polydata.put("COMMENT_DRI", COMMENT_DRI);
+            //Log.d("TEST savedirver", polydata.toString());
+            request.addProperty("Json_CheckingDriver", polydata.toString());
+            SoapSerializationEnvelope envelope = new SoapSerializationEnvelope(SoapEnvelope.VER11);
+            envelope.dotNet = true;
+            envelope.setOutputSoapObject(request);
+            HttpTransportSE androidHttpTransport = new HttpTransportSE(urlMarch);
+            androidHttpTransport.call(SOAP_ACTION_MARCH + METHOD_NAME, envelope);
+            SoapPrimitive result = (SoapPrimitive) envelope.getResponse();
+            String resultData = result.toString();
+            return resultData;
+        } catch (Exception e) {
+            Log.d("Error CheckingDriver", e.toString());
+            return "error";
+        }
+    }
+
+    public String saveCheckTruck(String LASTWORK, String ITEM, String EMP_ID, String TRUCK_ID, String STATUSTRUCK, String STATUSTRUCK_TH, String LATLNG, String LOCATION_NAME, String COMMENT_TCK) {
+        try {
+            METHOD_NAME = "Save_CheckingTruck";
+            soap_property = new SOAPWebserviceProperty();
+            soap_property.urlWebservice = urlMarch;
+            soap_property.namespaceWebservice = NAMESPACE;
+            SoapObject request = new SoapObject(NAMESPACE, METHOD_NAME);
+
+            JSONObject polydata = new JSONObject();
+            polydata.put("LASTWORK", LASTWORK);
+            polydata.put("ITEM", ITEM);
+            polydata.put("EMP_ID", EMP_ID);
+            polydata.put("TRUCK_ID", TRUCK_ID);
+            polydata.put("STATUSTRUCK", STATUSTRUCK);
+            polydata.put("STATUSTRUCK_TH", STATUSTRUCK_TH);
+            polydata.put("LATLNG", LATLNG);
+            polydata.put("LOCATION_NAME", LOCATION_NAME);
+            polydata.put("COMMENT_TCK", COMMENT_TCK);
+
+            request.addProperty("Json_CheckingTruck", polydata.toString());
+            SoapSerializationEnvelope envelope = new SoapSerializationEnvelope(SoapEnvelope.VER11);
+            envelope.dotNet = true;
+            envelope.setOutputSoapObject(request);
+            HttpTransportSE androidHttpTransport = new HttpTransportSE(urlMarch);
+            androidHttpTransport.call(SOAP_ACTION_MARCH + METHOD_NAME, envelope);
+            SoapPrimitive result = (SoapPrimitive) envelope.getResponse();
+            String resultData = result.toString();
+            return resultData;
+        } catch (Exception e) {
+            Log.d("Error CheckingTruck", e.toString());
+            return "error";
+        }
+    }
+
+    public String getDriver(String empid,String truckid) {
+        try {
+            METHOD_NAME = "Get_Driver";
+            soap_property = new SOAPWebserviceProperty();
+            soap_property.urlWebservice = urlMarch;
+            soap_property.namespaceWebservice = NAMESPACE;
+            SoapObject request = new SoapObject(NAMESPACE, METHOD_NAME);
+            request.addProperty("EMP_ID", empid);
+            request.addProperty("TruckId", truckid);
+            SoapSerializationEnvelope envelope = new SoapSerializationEnvelope(SoapEnvelope.VER11);
+            envelope.dotNet = true;
+            envelope.setOutputSoapObject(request);
+            HttpTransportSE androidHttpTransport = new HttpTransportSE(urlMarch);
+            androidHttpTransport.call(SOAP_ACTION_MARCH + METHOD_NAME, envelope);
+            SoapPrimitive result = (SoapPrimitive) envelope.getResponse();
+            String resultData = result.toString();
+            return resultData;
+        } catch (Exception e) {
+            Log.d("Error getDriver", e.toString());
+            return "error";
+        }
+    }
 }

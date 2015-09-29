@@ -1,6 +1,5 @@
 package mibh.mis.tms;
 
-import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.ActivityNotFoundException;
@@ -8,12 +7,14 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
@@ -29,6 +30,8 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.google.zxing.BarcodeFormat;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -37,6 +40,8 @@ import java.util.HashMap;
 
 import mibh.mis.tms.data.WorkData;
 import mibh.mis.tms.database.img_tms;
+import mibh.mis.tms.qrcode.Content;
+import mibh.mis.tms.qrcode.QRCodeEncoder;
 import mibh.mis.tms.service.FileDownloader;
 
 public class WorkList extends Fragment {
@@ -49,7 +54,8 @@ public class WorkList extends Fragment {
     private ArrayList<HashMap<String, String>> data = new ArrayList<>();
     public Dialog dialog;
     private TextView WOHEADER_OPEN, COMPANY_NAME, SOURCE_NAME, DEST_NAME, DISTANCE_PLAN, TRUCK_LICENSE, TRUCK_LICENSE_PROVINCE, TAIL_LICENSE, TAIL_LICENSE_PROVINCE, PRO_NAME, CUSTOMER_NAME, detailwoitem, WOHEADER_DOCID, remark;
-    private View print,zDetail;
+    private ImageView qrDetail;
+    private View zDetail;
     private img_tms ImgTms;
     private HashMap<String, Boolean> mCheckStates = new HashMap<>();
     private ArrayList<img_tms.Image_tms> cursor;
@@ -212,8 +218,8 @@ public class WorkList extends Fragment {
             PRO_NAME = (TextView) dialog.findViewById(R.id.PRO_NAME);
             CUSTOMER_NAME = (TextView) dialog.findViewById(R.id.CUSTUMER_NAME);
             remark = (TextView) dialog.findViewById(R.id.remark);
-            print = dialog.findViewById(R.id.print);
             zDetail = dialog.findViewById(R.id.zoomDetail);
+            qrDetail = (ImageView) dialog.findViewById(R.id.qrDetail);
         }
 
         public void showDialogDetail(int position) {
@@ -237,11 +243,11 @@ public class WorkList extends Fragment {
             CUSTOMER_NAME.setText(data.get(position).get("CUSTOMER_NAME"));
             url = data.get(position).get("DOCITEM_URL");
             fileUrl = url.substring(40);
-            print.setOnClickListener(new View.OnClickListener() {
+            /*print.setOnClickListener(new View.OnClickListener() {
                 public void onClick(View view) {
                     new DownloadFile().execute(url, fileUrl);
                 }
-            });
+            });*/
             ImageView close = (ImageView) dialog.findViewById(R.id.close);
             dialog.show();
             close.setOnClickListener(new View.OnClickListener() {
@@ -251,6 +257,14 @@ public class WorkList extends Fragment {
                 }
             });
             zDetail.setOnTouchListener(zoomDetail);
+            String qrTxt = data.get(position).get("WOHEADER_DOCID") + data.get(position).get("WOITEM_DOCID");
+            try {
+                QRCodeEncoder qrCodeEncoder = new QRCodeEncoder(qrTxt, null, Content.Type.TEXT, BarcodeFormat.QR_CODE.toString(), 250);
+                Bitmap bitmap = qrCodeEncoder.encodeAsBitmap();
+                qrDetail.setImageBitmap(bitmap);
+            } catch (Exception e) {
+                Log.d("Error DetailCode", e.toString());
+            }
         }
 
         public class VersionViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
@@ -415,7 +429,7 @@ public class WorkList extends Fragment {
                                         view.setTranslationX(TranslateOfsPos[0]);
                                         view.setTranslationY(TranslateOfsPos[1]);
                                     } else {
-			    					/* Reset position and scale */
+                                    /* Reset position and scale */
                                         view.setScaleX(1);
                                         view.setScaleY(1);
                                         view.setTranslationX(0);

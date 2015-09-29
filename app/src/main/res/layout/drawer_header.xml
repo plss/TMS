@@ -13,13 +13,14 @@
     <LinearLayout
         android:orientation="horizontal"
         android:layout_width="fill_parent"
-        android:layout_height="fill_parent">
+        android:layout_height="fill_parent"
+        android:id="@+id/headerFrame">
 
         <ImageView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
             android:id="@+id/imageView2"
-            android:src="@drawable/ic_action_user"
+            android:src="@drawable/qrtms"
             android:layout_gravity="center_vertical"
             android:layout_margin="8dp" />
 

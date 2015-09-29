@@ -17,6 +17,7 @@
             android:id="@+id/drawer_fuel"
             android:icon="@drawable/fuel"
             android:title="@string/menu.fuel" />
+<!--
 
         <item
             android:id="@+id/drawer_docwork"
@@ -27,6 +28,7 @@
             android:id="@+id/drawer_docfuel"
             android:icon="@drawable/doc"
             android:title="@string/menu.doc.fuel" />
+-->
 
         <item
             android:id="@+id/drawer_cash"
@@ -34,14 +36,19 @@
             android:title="@string/menu.cash" />
 
         <item
+            android:id="@+id/drawer_slip"
+            android:icon="@drawable/cash_multiple"
+            android:title="@string/menu.slip" />
+
+        <item
             android:id="@+id/drawer_check"
             android:icon="@drawable/check"
             android:title="@string/menu.check" />
 
         <item
-            android:id="@+id/drawer_sick"
-            android:icon="@drawable/sick"
-            android:title="@string/menu.sick" />
+            android:id="@+id/drawer_cam"
+            android:icon="@drawable/camera"
+            android:title="@string/menu.cam" />
 
         <item
             android:id="@+id/drawer_weight"

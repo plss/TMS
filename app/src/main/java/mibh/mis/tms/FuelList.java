@@ -31,10 +31,12 @@ import mibh.mis.tms.database.img_tms;
 import mibh.mis.tms.qrcode.Content;
 import mibh.mis.tms.qrcode.QRCodeEncoder;
 import mibh.mis.tms.service.CallService;
+import mibh.mis.tms.service.CheckOnline;
 
 /**
  * Created by ponlakiss on 06/07/2015.
  */
+
 public class FuelList extends Fragment {
 
     RecyclerView recyclerView;
@@ -47,6 +49,7 @@ public class FuelList extends Fragment {
     private ArrayList<img_tms.Image_tms> cursor;
     View btnNewFuel;
     SharedPreferences sp;
+    CheckOnline check;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -60,6 +63,7 @@ public class FuelList extends Fragment {
         recyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
         recyclerView.setItemAnimator(new DefaultItemAnimator());
         sp = getActivity().getSharedPreferences("info", Context.MODE_PRIVATE);
+        check = new CheckOnline(getActivity());
         ImgTms = new img_tms(getActivity());
         fuelData = new FuelData();
         data = fuelData.getFuelData();
@@ -82,24 +86,30 @@ public class FuelList extends Fragment {
         btnNewFuel.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(getActivity());
-                alertDialogBuilder.setMessage("คุณต้องการที่จะเบิกเชื้อเพลิงเพิ่มใช่หรือไม่");
-                alertDialogBuilder.setPositiveButton("ใช่",
-                        new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface arg0, int arg1) {
-                                new Loading().execute(fuelData.getDocId(), sp.getString("empid", ""));
-                            }
-                        });
-                alertDialogBuilder.setNegativeButton("ไม่",
-                        new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                dialog.cancel();
-                            }
-                        });
-                AlertDialog alertDialog = alertDialogBuilder.create();
-                alertDialog.show();
+                if (check.isOnline()){
+                    AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(getActivity());
+                    alertDialogBuilder.setMessage("คุณต้องการที่จะเบิกเชื้อเพลิงเพิ่มใช่หรือไม่");
+                    alertDialogBuilder.setPositiveButton("ใช่",
+                            new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface arg0, int arg1) {
+                                    new Loading().execute(fuelData.getDocId(), sp.getString("empid", ""));
+                                }
+                            });
+                    alertDialogBuilder.setNegativeButton("ไม่",
+                            new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.cancel();
+                                }
+                            });
+                    AlertDialog alertDialog = alertDialogBuilder.create();
+                    alertDialog.show();
+                }
+                else {
+                    showAlertDialog();
+                }
+
             }
         });
 
@@ -247,6 +257,19 @@ public class FuelList extends Fragment {
                 adapter.notifyDataSetChanged();
             }
         }
+    }
+
+    private void showAlertDialog() {
+        android.support.v7.app.AlertDialog.Builder builder = new android.support.v7.app.AlertDialog.Builder(getActivity());
+        builder.setCancelable(true);
+        builder.setMessage("กรุณาเปิด Internet ก่อนใช้งาน");
+        builder.setPositiveButton("ตกลง", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                dialogInterface.dismiss();
+            }
+        });
+        builder.show();
     }
 
 }

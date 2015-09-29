@@ -1,9 +1,14 @@
 package mibh.mis.tms.service;
 
+import android.app.IntentService;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.os.AsyncTask;
 import android.os.Environment;
 import android.util.Log;
 
@@ -15,36 +20,34 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.util.ArrayList;
 
+import mibh.mis.tms.Login;
+import mibh.mis.tms.R;
 import mibh.mis.tms.database.img_tms;
 
 /**
  * Created by ponlakiss on 06/10/2015.
  */
 
-public class UploadPic extends AsyncTask<Object, Void, Object> {
+public class UploadPic extends IntentService {
 
-    Context context;
-    String fileName, WOHEADER_DOCID, TYPE_IMG, Lat, Lng, Date, Comment;
+    String fileName, WOHEADER_DOCID, TYPE_IMG, Lat, Lng, Date, Comment, ITEM, Group_Type;
     ArrayList<img_tms.Image_tms> cursor;
     img_tms ImgTms;
+    SharedPreferences sp;
 
-    public UploadPic(Context context) {
-        this.context = context;
-        ImgTms = new img_tms(context);
+    public UploadPic() {
+        super("ScheduledService");
     }
 
     @Override
-    protected void onPreExecute() {
-        super.onPreExecute();
+    public void onCreate() {
+        super.onCreate();
+        ImgTms = new img_tms(UploadPic.this);
+        sp = getSharedPreferences("info", Context.MODE_PRIVATE);
     }
 
     @Override
-    protected void onPostExecute(Object o) {
-        super.onPostExecute(o);
-    }
-
-    @Override
-    protected Object doInBackground(Object[] params) {
+    protected void onHandleIntent(Intent intent) {
         cursor = ImgTms.Img_GetAllInactive();
         for (int i = 0; i < cursor.size(); i++) {
             fileName = cursor.get(i).Filename;
@@ -54,21 +57,16 @@ public class UploadPic extends AsyncTask<Object, Void, Object> {
             Lng = cursor.get(i).Lng_img;
             Date = cursor.get(i).Date_img;
             Comment = cursor.get(i).Comment;
-            Log.d("getAll " + i, cursor.get(i).Doc_item);
-            Log.d("getAll " + i, cursor.get(i).Type_img);
-            Log.d("getAll " + i, cursor.get(i).Date_img);
-            Log.d("getAll " + i, cursor.get(i).Filename);
-            //Log.d("getAll "+i,cursor.get(i).Group_Type);
-            Log.d("getAll " + i, cursor.get(i).Lat_img);
-            Log.d("getAll " + i, cursor.get(i).Lng_img);
-            Log.d("getAll " + i, cursor.get(i).WorkHid);
-            Log.d("getAll " + i, cursor.get(i).Stat_Upd);
+            ITEM = cursor.get(i).Doc_item;
+            Group_Type = cursor.get(i).Group_Type;
             if (!savePhoto().equals("error")) {
                 ImgTms.UpdateByFilename(fileName);
             }
         }
         ImgTms.close();
-        return null;
+
+        String result = new CallService().checkNotify(sp.getString("truckid", ""));
+        createNotification(result);
     }
 
     private String savePhoto() {
@@ -110,6 +108,11 @@ public class UploadPic extends AsyncTask<Object, Void, Object> {
             dataIm_reg.put("date_image", Date);
             dataIm_reg.put("Status", "Active");
             arrayIm_reg.put(dataIm_reg);
+
+            if (Comment.length() >= 296) {
+                Comment = Comment.substring(0, 295) + "..";
+            }
+            new CallService().setState(WOHEADER_DOCID, ITEM, sp.getString("truckid", ""), String.format("%.5f,%.5f",Double.parseDouble(Lat), Double.parseDouble(Lng)), "Location not found", Group_Type, TYPE_IMG, sp.getString("empid", ""), sp.getString("firstname", "") + " " + sp.getString("lastname", ""), fileName, Comment);
             Result = new CallService().savePic(array.toString(), arrayIm_reg.toString());
             Log.d("Save pic", Result);
             return Result;
@@ -118,4 +121,31 @@ public class UploadPic extends AsyncTask<Object, Void, Object> {
             return "error";
         }
     }
+
+    private void createNotification(String result) {
+        if (!result.equals("[]") && !result.equals("null")) {
+            try {
+                JSONArray data = new JSONArray(result);
+                JSONObject c = data.getJSONObject(0);
+                NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+                Notification notification = new Notification(R.mipmap.ic_launcher, "มีการแจ้งเตือนไหม่", System.currentTimeMillis());
+                notification.flags |= Notification.FLAG_AUTO_CANCEL;
+                String Title = "ข้อความใหม่";
+                String[] splitDot = c.getString("CO_ITEM").split("\\.");
+                String Message = "มีงานเข้า " + splitDot[0] + " งาน";
+                Intent intent = new Intent(this, Login.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                PendingIntent activity = PendingIntent.getActivity(this, 0, intent, 0);
+                notification.setLatestEventInfo(this, Title, Message, activity);
+                //notification.number += 1;
+                notification.flags |= Notification.FLAG_AUTO_CANCEL;
+                notification.defaults = Notification.DEFAULT_SOUND;
+                notification.defaults = Notification.DEFAULT_VIBRATE;
+                notificationManager.notify(0, notification);
+            } catch (Exception e) {
+                Log.d("Error creNotify", e.toString());
+            }
+        }
+    }
+
 }

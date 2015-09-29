@@ -61,24 +61,64 @@
                     android:layout_height="80dp"
                     android:layout_toStartOf="@+id/captBtn"
                     android:layout_alignParentBottom="true"
-                    android:layout_alignParentStart="false">
+                    android:layout_alignParentStart="false"
+                    android:layout_marginRight="8dp">
 
                     <ImageView
-                        android:layout_width="50dp"
-                        android:layout_height="50dp"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
                         android:id="@+id/btnComment"
                         android:layout_centerInParent="true"
                         android:background="@drawable/comment" />
                 </RelativeLayout>
 
-                <ImageView
-                    android:layout_width="80dp"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="80dp"
+                    android:layout_alignParentBottom="true"
+                    android:layout_toEndOf="@+id/captBtn"
+                    android:orientation="horizontal"
+                    android:layout_marginLeft="8dp">
+
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1">
+
+                        <ImageView
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:id="@+id/btnSwCam"
+                            android:background="@drawable/switchcam"
+                            android:layout_gravity="center"
+                            android:layout_centerInParent="true" />
+                    </RelativeLayout>
+
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1">
+
+                        <ImageView
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:id="@+id/flashBtn"
+                            android:background="@drawable/csflash"
+                            android:layout_alignParentRight="false"
+                            android:layout_gravity="center"
+                            android:layout_centerInParent="true" />
+                    </RelativeLayout>
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="75dp"
+                    android:layout_height="75dp"
                     android:id="@+id/captBtn"
                     android:src="@drawable/capture"
                     android:layout_alignParentBottom="true"
                     android:layout_centerHorizontal="true"
                     android:layout_weight="1" />
+
             </RelativeLayout>
 
             <!--<ImageView

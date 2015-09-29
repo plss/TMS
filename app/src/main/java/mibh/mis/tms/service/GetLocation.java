@@ -1,17 +1,12 @@
 package mibh.mis.tms.service;
 
-import android.app.Service;
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
-import android.location.Address;
-import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.util.Log;
 
 import org.apache.http.HttpEntity;
@@ -30,13 +25,12 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 
 /**
  * Created by ponlakiss on 06/10/2015.
  */
-public class GetLocation extends Service implements LocationListener {
+public class GetLocation implements LocationListener {
 
     private final Context mContext;
     boolean isGPSEnabled = false;
@@ -51,15 +45,14 @@ public class GetLocation extends Service implements LocationListener {
     private SharedPreferences sp;
     private SharedPreferences.Editor editor;
 
-    private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 5;
-
-    private static final long MIN_TIME_BW_UPDATES = 1000 * 60 * 2;
+    private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 0;
+    private static final long MIN_TIME_BW_UPDATES = 1000 * 60 * 3;
 
     protected LocationManager locationManager;
 
     public GetLocation(Context context) {
         this.mContext = context;
-        //this.location =
+        stopUsingGPS();
         getLocation();
     }
 
@@ -68,7 +61,7 @@ public class GetLocation extends Service implements LocationListener {
             sp = mContext.getSharedPreferences("info", Context.MODE_PRIVATE);
             editor = sp.edit();
             Log.d("test", "1");
-            locationManager = (LocationManager) mContext.getSystemService(LOCATION_SERVICE);
+            locationManager = (LocationManager) mContext.getSystemService(Context.LOCATION_SERVICE);
             isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
             isNetWorkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
             Log.d("test", "2");
@@ -84,7 +77,7 @@ public class GetLocation extends Service implements LocationListener {
                         if (location != null) {
                             latitude = location.getLatitude();
                             longitude = location.getLongitude();
-                            locationName = getLocationName(latitude, longitude);
+                            //locationName = getLocationName(latitude, longitude);
                             editor.putString("latitude", String.valueOf(latitude));
                             editor.putString("longtitude", String.valueOf(longitude));
                             new getLocationName(latitude, longitude).execute();
@@ -102,7 +95,7 @@ public class GetLocation extends Service implements LocationListener {
                             if (location != null) {
                                 latitude = location.getLatitude();
                                 longitude = location.getLongitude();
-                                locationName = getLocationName(latitude, longitude);
+                                //locationName = getLocationName(latitude, longitude);
                                 editor.putString("latitude", String.valueOf(latitude));
                                 editor.putString("longtitude", String.valueOf(longitude));
                                 //editor.putString("locationname", getName());
@@ -147,7 +140,7 @@ public class GetLocation extends Service implements LocationListener {
         return "Location not found";
     }
 
-    public String getLocationName(double latitude, double longitude) {
+/*    public String getLocationName(double latitude, double longitude) {
         String Locations = "";
         try {
             //List<String> providerList = locationManager.getAllProviders();
@@ -165,7 +158,7 @@ public class GetLocation extends Service implements LocationListener {
             return "Location not found";
         }
         return Locations;
-    }
+    }*/
 
     public boolean canGetLocation() {
         return this.canGetLoaction;
@@ -203,11 +196,6 @@ public class GetLocation extends Service implements LocationListener {
     @Override
     public void onProviderDisabled(String provider) {
 
-    }
-
-    @Override
-    public IBinder onBind(Intent intent) {
-        return null;
     }
 
     public class getLocationName extends AsyncTask {

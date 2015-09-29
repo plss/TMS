@@ -16,8 +16,10 @@
     <string name="menu.doc.work">ใบงานขนส่ง</string>
     <string name="menu.doc.fuel">ใบเบิกเชื้อเพลิง</string>
     <string name="menu.cash">เงินค่าเที่ยว</string>
-    <string name="menu.check">ตรวจสภาพรถ</string>
+    <string name="menu.slip">สลิปเงินเดือน</string>
+    <string name="menu.check">ตรวจสภาพ / รายงานตัว</string>
     <string name="menu.sick">การลา</string>
+    <string name="menu.cam">ถ่ายรูป</string>
     <string name="menu.reserve.weight">จองคิวห้องชั่ง</string>
     <string name="menu.logout">ออกจากระบบ</string>
 
@@ -27,7 +29,8 @@
     <string-array name="usefuel_array">
         <item>1. สถานีเชื้อเพลิง</item>
         <item>2. เอกสาร/ใบเสร็จ</item>
-        <item>3. อื่นๆ</item>
+        <item>3. รถ</item>
+        <item>4. อื่นๆ</item>
     </string-array>
 
     <string-array name="received_array">
@@ -46,12 +49,20 @@
         <item>5. ห้องชั่ง</item>
         <item>6. ล้างรถ</item>
         <item>7. แจ้งปัญหา</item>
-        <item>8. อื่นๆ</item>
+        <item>8. อุบัติเหตุ</item>
+        <item>9. อื่นๆ</item>
     </string-array>
 
     <string-array name="list_signature">
         <item>1. ลงชื่อรับสินค้า</item>
-        <item>2. ลงชื้อส่งสินค้า</item>
+        <item>2. ลงชื่อส่งสินค้า</item>
+    </string-array>
+
+    <string-array name="list_maintenance">
+        <item>1. รถ</item>
+        <item>2. อุปกรณ์ประจำรถ</item>
+        <item>3. พนักงาน</item>
+        <item>4. อื่นๆ</item>
     </string-array>
 
     <string-array name="submited_array">
@@ -65,4 +76,6 @@
         <item>1. ภาพตนเอง ระบุ ต้นทาง-ปลายทาง</item>
         <item>2. ภาพใบ DO และทำการปิดงาน ส่งเอกสารให้พนักงาน GPS</item>
     </string-array>
+
+
 </resources>

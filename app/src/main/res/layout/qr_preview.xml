@@ -1,36 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical" android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
 
     <LinearLayout
-        android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:orientation="vertical"
         android:padding="16dp">
 
         <ImageView
+            android:id="@+id/qrPic"
             android:layout_width="300dp"
             android:layout_height="300dp"
-            android:id="@+id/qrPic"
             android:layout_centerHorizontal="true"
+            android:layout_gravity="center_horizontal"
             android:layout_marginBottom="16dp"
             android:minHeight="500dp"
-            android:minWidth="500dp"
-            android:layout_gravity="center_horizontal" />
+            android:minWidth="500dp" />
 
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
             <TextView
+                android:id="@+id/qrTxt"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="New Text"
-                android:id="@+id/qrTxt"
-                android:textSize="24dp"
+                android:layout_centerInParent="true"
                 android:layout_gravity="center_vertical"
-                android:layout_centerInParent="true" />
+                android:text="New Text"
+                android:textSize="24dp" />
         </RelativeLayout>
 
     </LinearLayout>

@@ -31,11 +31,16 @@ import android.os.Handler;
 import android.provider.MediaStore;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.DefaultItemAnimator;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Display;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
+import android.view.OrientationEventListener;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
@@ -71,20 +76,21 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
     PictureCallback rawCallback;
     ShutterCallback shutterCallback;
     PictureCallback jpegCallback;
-    ImageView captBtn, swCam, flashCam, btnComment;
-    private String OutputDirectory, fileName, from, modeName, Type_img, stat, comment = "";
-    private String WOHEADER_DOCID2, ITEM, TRUCK_ID2, LAT_LNG, LOCATION_NAME, DETAIL, STATUS_DES, TYPE_IMG;
+    ImageView captBtn, btnComment, btnSwCam, flashBtn;
+    String fileName = "", from = "", modeName = "", stat = "", comment = "", WOHEADER_DOCID2 = "", ITEM = "", DETAIL = "", TYPE_IMG = "";
     Bitmap bmpRear, bmpFront, bmp;
-    private SharedPreferences sp;
-    private SharedPreferences.Editor edit;
+    SharedPreferences sp;
+    SharedPreferences.Editor edit;
     Dialog dialog;
-    private TextView camMode;
+    TextView camMode;
     img_tms imgTms;
-    private static final int FOCUS_AREA_SIZE = 300;
-    private int camRear = Camera.CameraInfo.CAMERA_FACING_BACK;
-    private int camFront = Camera.CameraInfo.CAMERA_FACING_FRONT;
-    private int currentCam;
-    String[] listComment;
+    static final int FOCUS_AREA_SIZE = 300;
+    int camRear = Camera.CameraInfo.CAMERA_FACING_BACK, camFront = Camera.CameraInfo.CAMERA_FACING_FRONT, currentCam, rotat, firstCapRotate = 90, capCount = 0;
+    String flashOn = Camera.Parameters.FLASH_MODE_ON, flashOff = Camera.Parameters.FLASH_MODE_OFF, currentFlash = flashOff;
+    RecyclerView recyclerView;
+    AlertDialog dialogList2;
+    AutoCompleteTextView input;
+    OrientationEventListener cOrientationEventListener;
 
     float motionX = 0;
     float motionY = 0;
@@ -92,8 +98,6 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        //requestWindowFeature(Window.FEATURE_NO_TITLE);
-        //getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.camera_main);
 
         sp = getSharedPreferences("info", Context.MODE_PRIVATE);
@@ -105,9 +109,9 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
         mPreview.getHolder().setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
         captBtn = (ImageView) findViewById(R.id.captBtn);
         btnComment = (ImageView) findViewById(R.id.btnComment);
+        btnSwCam = (ImageView) findViewById(R.id.btnSwCam);
         camMode = (TextView) findViewById(R.id.camMode);
-        //swCam = (ImageView) findViewById(R.id.swCam);
-        //flashCam = (ImageView) findViewById(R.id.flashCam);
+        flashBtn = (ImageView) findViewById(R.id.flashBtn);
 
         Bundle extras = getIntent().getExtras();
 
@@ -136,7 +140,6 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
         imgTms = new img_tms(CameraMain.this);
 
         fileName = imgTms.Gen_imgName(sp.getString("truckid", ""), from);
-        Log.d("FileName", fileName);
 
         camMode.setText(modeName);
         initCapture();
@@ -144,7 +147,6 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
         captBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //captBtn.setEnabled(false);
                 capture();
             }
         });
@@ -161,21 +163,47 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
             }
         });
 
+        btnSwCam.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                switchCamera();
+            }
+        });
+
+        flashBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (currentFlash.equalsIgnoreCase(flashOff) && hasFlash()) {
+                    currentFlash = flashOn;
+                    flashBtn.setBackground(getResources().getDrawable(R.drawable.pnflash));
+                } else {
+                    currentFlash = flashOff;
+                    flashBtn.setBackground(getResources().getDrawable(R.drawable.csflash));
+                }
+                Camera.Parameters pm = mCamera.getParameters();
+                pm.setFlashMode(currentFlash);
+                mCamera.setParameters(pm);
+            }
+        });
+
         btnComment.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 edit = sp.edit();
                 AlertDialog.Builder alert = new AlertDialog.Builder(CameraMain.this);
                 alert.setTitle("ใส่ข้อความ");
-                //final EditText input = new EditText(CameraMain.this);
-                final AutoCompleteTextView input = new AutoCompleteTextView(CameraMain.this);
+                View view = CameraMain.this.getLayoutInflater().inflate(R.layout.dialog_comment, null);
+                input = (AutoCompleteTextView) view.findViewById(R.id.inputComment);
                 input.setThreshold(1);
                 input.setLines(3);
                 input.setPaddingRelative(16, 0, 16, 0);
                 input.addTextChangedListener(new TextWatcher() {
                     @Override
                     public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
+                        if (sp.getString("listcomment", "").equals("")) {
+                            edit.putString("listcomment", "ซ่อมรถ&เติมก๊าซ&ชั่งเข้า&ชั่งออก&รายงานตัวครับ&ลงสินค้า&ขึ้นสินค้า&ล้างรถ&บิลก็าซ&รอลงตู้&กำลังเติมก๊าซ&X-Ray");
+                            edit.apply();
+                        }
                     }
 
                     @Override
@@ -202,7 +230,7 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
 
                     }
                 });
-                alert.setView(input);
+                alert.setView(view);
                 alert.setPositiveButton("ตกลง", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int whichButton) {
                         comment = input.getText().toString();
@@ -212,7 +240,6 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
                             String str = comment;
                             List<String> items = Arrays.asList(sp.getString("listcomment", "").split("&"));
                             if (!items.contains(comment) && !comment.equals("")) {
-                                //listComment = sp.getString("listcomment", "").split("&");
                                 for (int x = 0, i = 0; x < items.size(); ++x, i++) {
                                     if (i >= 20) {
                                         break;
@@ -227,14 +254,50 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
                         edit.apply();
                     }
                 });
-                /*alert.setNegativeButton("ยกเลิก", new DialogInterface.OnClickListener() {
+                alert.setNeutralButton("# รูปแบบข้อความ", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int whichButton) {
-                        edit.remove("listcomment").apply();
-                        edit.apply();
-                        dialog.cancel();
                     }
-                });*/
-                alert.show();
+                });
+
+                final AlertDialog alert2 = alert.create();
+                alert2.show();
+                Button btn = alert2.getButton(DialogInterface.BUTTON_NEUTRAL);
+                btn.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        AlertDialog.Builder dialogList = new AlertDialog.Builder(CameraMain.this);
+                        dialogList.setTitle("เลือกรูปแบบข้อความ");
+                        View dialoglist_view = CameraMain.this.getLayoutInflater().inflate(R.layout.dialoglist, null);
+                        recyclerView = (RecyclerView) dialoglist_view.findViewById(R.id.dialoglist_rv);
+                        recyclerView.setHasFixedSize(true);
+                        recyclerView.setLayoutManager(new LinearLayoutManager(CameraMain.this));
+                        recyclerView.setItemAnimator(new DefaultItemAnimator());
+                        recyclerView.addItemDecoration(new DividerItemDecoration(CameraMain.this, DividerItemDecoration.VERTICAL_LIST));
+                        final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(CameraMain.this, android.R.layout.select_dialog_singlechoice);
+
+                        ArrayList<img_tms.Hashtag_TMS> Hash = imgTms.GetHashtagByGtypeAndImgType(from, TYPE_IMG);
+                        arrayAdapter.clear();
+                        for (int i = 0; i < Hash.size(); ++i) {
+                            arrayAdapter.add(Hash.get(i).list_name);
+                        }
+                        /*ArrayList<img_tms.Hashtag_TMS> Hash = imgTms.HT_GetHashtag();
+                        for (int i = 0; i < Hash.size(); ++i) {
+                            arrayAdapter.add(Hash.get(i).list_name);
+                        }*/
+                        Adapter adapter = new Adapter(CameraMain.this, arrayAdapter);
+                        recyclerView.setAdapter(adapter);
+                        dialogList.setView(dialoglist_view);
+                        dialogList.setNegativeButton("ยกเลิก",
+                                new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        dialog.dismiss();
+                                    }
+                                });
+                        dialogList2 = dialogList.create();
+                        dialogList2.show();
+                    }
+                });
             }
         });
     }
@@ -289,8 +352,29 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
         //Log.d("System", "onResume");
         super.onResume();
         mCamera = Camera.open();
-        mSensorManager.registerListener(this, mAccelerometer
-                , SensorManager.SENSOR_DELAY_NORMAL);
+        mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+
+        if (cOrientationEventListener == null) {
+            cOrientationEventListener = new OrientationEventListener(this, SensorManager.SENSOR_DELAY_NORMAL) {
+                public void onOrientationChanged(int orientation) {
+                    if (orientation == ORIENTATION_UNKNOWN) return;
+                    Camera.CameraInfo info = new android.hardware.Camera.CameraInfo();
+                    android.hardware.Camera.getCameraInfo(currentCam, info);
+                    orientation = (orientation + 45) / 90 * 90;
+                    int rotation = 0;
+                    if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                        rotation = (info.orientation - orientation + 360) % 360;
+                    } else {  // back-facing camera
+                        rotation = (info.orientation + orientation) % 360;
+                    }
+                    rotat = rotation;
+                }
+
+            };
+        }
+        if (cOrientationEventListener.canDetectOrientation()) {
+            cOrientationEventListener.enable();
+        }
     }
 
     public void onPause() {
@@ -302,60 +386,46 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
         closeCamera();
         //mCamera.release();
         mSensorManager.unregisterListener(this, mAccelerometer);
-
+        if (bmpFront != null) {
+            bmpFront.recycle();
+            System.gc();
+        }
+        if (bmpRear != null) {
+            bmpRear.recycle();
+            System.gc();
+        }
     }
 
     public void onAccuracyChanged(Sensor arg0, int arg1) {
     }
 
     public void onSensorChanged(SensorEvent event) {
-        if (Math.abs(event.values[0] - motionX) > 1
-                || Math.abs(event.values[1] - motionY) > 1
-                || Math.abs(event.values[2] - motionZ) > 1) {
-            Log.d("Camera System", "Refocus");
-            try {
-                mCamera.autoFocus(this);
-            } catch (RuntimeException e) {
+        if (currentFlash.equalsIgnoreCase(flashOff)) {
+            if (Math.abs(event.values[0] - motionX) > 1
+                    || Math.abs(event.values[1] - motionY) > 1
+                    || Math.abs(event.values[2] - motionZ) > 1) {
+                //Log.d("Camera System", "Refocus");
+                try {
+                    mCamera.autoFocus(this);
+                } catch (RuntimeException e) {
+                }
+                motionX = event.values[0];
+                motionY = event.values[1];
+                motionZ = event.values[2];
             }
-
-            motionX = event.values[0];
-            motionY = event.values[1];
-            motionZ = event.values[2];
         }
+
     }
 
     public void surfaceChanged(SurfaceHolder arg0, int arg1, int arg2, int arg3) {
         Log.d("CameraSystem", "surfaceChanged");
         mCamera.setDisplayOrientation(90);
-        Camera.Parameters params = mCamera.getParameters();
-        /*List<Camera.Size> previewSize = params.getSupportedPreviewSizes();
-        List<Camera.Size> pictureSize = params.getSupportedPictureSizes();
-        params.setPictureSize(pictureSize.get(0).width, pictureSize.get(0).height);
-        Camera.Size optimalSize = getOptimalPreviewSize(arg2, arg3, params);
-
-        WindowManager wm = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
-        Display display = wm.getDefaultDisplay();
-        Point size = new Point();
-        display.getSize(size);
-        int width = (int)(size.x*0.8);
-        int height = (int)(size.y*0.8);
-        params.setPreviewSize(width, height);
-        params.setJpegQuality(100);
-        mCamera.setParameters(params);
-
-        try {
-            mCamera.setPreviewDisplay(mPreview.getHolder());
-            mCamera.startPreview();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }*/
         Camera.Parameters pm = mCamera.getParameters();
         int pheight = pm.getPictureSize().height;
         int pwidth = pm.getPictureSize().width;
         int CamViewW = 0;
         int CamViewH = 0;
         try {
-                /* Get current screen size */
             int disp_width = 0;
             int disp_height = 0;
             FrameLayout CameraLayout = (FrameLayout) findViewById(R.id.CameraLayout);
@@ -373,18 +443,8 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
                 disp_width = width;
                 disp_height = height;
             }
-/*
-                *//* Screen rotation flip *//*
-            if (disp_width < disp_height) {
-                int temp = disp_height;
-                disp_height = disp_width;
-                disp_width = temp;
-            }*/
             Log.d("w & h", disp_width + " " + disp_height);
-                /*CamViewW  = (pwidth*height)/pheight;*/
-                /*CamViewH  = height;*/
             CamViewW = (int) ((float) disp_width);
-            //CamViewH = ((CamViewW * pheight) / pwidth);
             CamViewH = (int) ((float) disp_height * 0.8);
             Log.d("w & h", CamViewW + " " + CamViewH);
 
@@ -397,18 +457,10 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
 
             mp.width = CamViewW;
             mp.height = CamViewH;
-            List<Camera.Size> pictureSize = pm.getSupportedPictureSizes();
-            List<Camera.Size> previewSize = pm.getSupportedPreviewSizes();
-            /*for (int i =0;i<pictureSize.size();i++){
-                Log.d("test size pic", pictureSize.get(i).height + " " + pictureSize.get(i).width);
-            }*/
             pm.setJpegQuality(100);
-            /*Log.d("test size pic1", CamViewH + " " + CamViewW);
-            Log.d("test size pic2", pm.getPictureSize().width + " " + pm.getPictureSize().height);
-            Log.d("test size pic3", pm.getPreviewSize().width + " " + pm.getPreviewSize().height);*/
-            //pm.setPictureSize(pm.getPictureSize().width, pm.getPictureSize().height);
             pm.setPictureSize(640, 480);
-            Log.d("Picture size Rear", pm.getPictureSize().width + " " + pm.getPictureSize().height);
+            //Log.d("Picture size Rear", pm.getPictureSize().width + " " + pm.getPictureSize().height);
+            pm.setFlashMode(currentFlash);
             mCamera.setParameters(pm);
             mPreview.setLayoutParams(mp);
             mCamera.setPreviewDisplay(mPreview.getHolder());
@@ -440,16 +492,24 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
         jpegCallback = new PictureCallback() {
             public void onPictureTaken(final byte[] data, Camera camera) {
                 System.gc();
-                if (currentCam == camRear) {
+                capCount++;
+                if (capCount == 1) {
                     bmpRear = captureRear(data);
-                    bmpRear = RotateBitmap(bmpRear, 90, (float) 1);
+                    bmpRear = RotateBitmap(bmpRear, rotat, (float) 1);
+                    firstCapRotate = rotat;
                     System.gc();
-                } else if (currentCam == camFront) {
+                    flipcamera();
+                } else if (capCount == 2) {
                     bmpFront = captureFront(data);
-                    bmpFront = RotateBitmap(bmpFront, 270, (float) 1);
+                    bmpFront = RotateBitmap(bmpFront, rotat, (float) 1);
                     System.gc();
                     showPreview();
                 }
+                /*if (currentCam == camRear) {
+
+                } else if (currentCam == camFront) {
+
+                }*/
 
             }
         };
@@ -541,11 +601,12 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
             @Override
             public void onClick(View v) {
                 if (dialog != null) dialog.dismiss();
+                capCount = 0;
                 //RefreshOpenCamera();
                 bmpFront.recycle();
                 bmpRear.recycle();
                 System.gc();
-                flipcamera();
+                switchCamera();
             }
         });
         dialog.show();
@@ -553,31 +614,11 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
 
     private Bitmap captureFront(byte[] data) {
         Bitmap bm = BitmapFactory.decodeByteArray(data, 0, data.length);
-        /*final Bitmap bmp_t;
-        int x = bm.getByteCount();
-        if (x > 10000000) {
-            bmp_t = RotateBitmap(bm, 90, (float) (0.2));
-        } else if (x > 4000000 && x < 1000000) {
-            bmp_t = RotateBitmap(bm, 90, (float) (4000000.0 / x));
-        } else bmp_t = RotateBitmap(bm, 90, (float) 1);*/
-
         return bm;
     }
 
     private Bitmap captureRear(byte[] data) {
         Bitmap bm = BitmapFactory.decodeByteArray(data, 0, data.length);
-        /*final Bitmap bmp_t;
-        Log.d("Size1", bm.getByteCount() + "");
-        int x = bm.getByteCount();
-        Log.d("x", 4000000.0 / bm.getByteCount() + "");
-        if (x > 10000000) {
-            bmp_t = RotateBitmap(bm, 90, (float) (0.2));
-        } else if (x > 4000000 && x < 1000000) {
-            bmp_t = RotateBitmap(bm, 90, (float) (4000000.0 / x));
-        } else bmp_t = RotateBitmap(bm, 90, (float) 1);
-        Log.d("Size2", bmp_t.getByteCount() + "");*/
-
-        flipcamera();
 
         return bm;
     }
@@ -585,20 +626,6 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
     private void capture() {
         //flipcamera();
         mCamera.takePicture(shutterCallback, rawCallback, jpegCallback);
-    }
-
-    private void RefreshOpenCamera() {
-        try {
-            if (mCamera != null) {
-                //mCamera = Camera.open(camRear);
-                currentCam = camRear;
-                mCamera.setPreviewDisplay(mPreview.getHolder());
-                mCamera.startPreview();
-                captBtn.setEnabled(true);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     public void closeCamera() {
@@ -612,6 +639,85 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
     }
 
     private void flipcamera() {
+        Log.d("CameraSystem", "flipcamera");
+        if (mCamera != null) {
+            mCamera.stopPreview();
+            mCamera.release();
+            mCamera = null;
+        }
+
+        /*if (currentCam == camRear) {*/
+        mCamera = Camera.open(camFront);
+        currentCam = camFront;
+        /*} else if (currentCam == camFront) {
+            mCamera = Camera.open(camRear);
+            currentCam = camRear;
+        }*/
+
+        if (mCamera != null) {
+            mCamera.setDisplayOrientation(90);
+            Camera.Parameters params = mCamera.getParameters();
+            Camera.Parameters pm = mCamera.getParameters();
+            int pheight = pm.getPictureSize().height;
+            int pwidth = pm.getPictureSize().width;
+            int CamViewW = 0;
+            int CamViewH = 0;
+            try {
+                int disp_width = 0;
+                int disp_height = 0;
+                FrameLayout CameraLayout = (FrameLayout) findViewById(R.id.CameraLayout);
+
+                if (CameraLayout != null) {
+                    disp_width = CameraLayout.getWidth();
+                    disp_height = CameraLayout.getHeight();
+                } else {
+                    WindowManager wm = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
+                    Display display = wm.getDefaultDisplay();
+                    Point size = new Point();
+                    display.getSize(size);
+                    int width = (size.x);
+                    int height = (size.y);
+                    disp_width = width;
+                    disp_height = height;
+                }
+                CamViewW = (int) ((float) disp_width);
+                CamViewH = (int) ((float) disp_height * 0.8);
+                if (CamViewH > disp_height) {
+                    CamViewH = disp_height;
+                    CamViewW = ((CamViewH * pwidth) / pheight);
+                }
+                ViewGroup.LayoutParams mp = mPreview.getLayoutParams();
+                mp.width = CamViewW;
+                mp.height = CamViewH;
+                List<Camera.Size> pictureSize = pm.getSupportedPictureSizes();
+                pm.setJpegQuality(100);
+                //pm.setPictureSize(pm.getPictureSize().width, pm.getPictureSize().height);
+                pm.setPictureSize(640, 480);
+                Log.d("Picture size Front", pm.getPictureSize().width + " " + pm.getPictureSize().height);
+                //pm.setFlashMode(flashOn);
+                mCamera.setParameters(pm);
+                mPreview.setLayoutParams(mp);
+                mCamera.setPreviewDisplay(mPreview.getHolder());
+                mCamera.startPreview();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            if (currentCam == camFront) {
+                final Handler handler = new Handler();
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        capture();
+                    }
+                }, 2000);
+            }
+
+        }
+    }
+
+    private void switchCamera() {
+        Log.d("CameraSystem", "switchCamera");
         if (mCamera != null) {
             mCamera.stopPreview();
             mCamera.release();
@@ -665,26 +771,14 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
                 pm.setJpegQuality(100);
                 //pm.setPictureSize(pm.getPictureSize().width, pm.getPictureSize().height);
                 pm.setPictureSize(640, 480);
-                Log.d("Picture size Front", pm.getPictureSize().width + " " + pm.getPictureSize().height);
+                pm.setFlashMode(currentFlash);
                 mCamera.setParameters(pm);
                 mPreview.setLayoutParams(mp);
-
                 mCamera.setPreviewDisplay(mPreview.getHolder());
                 mCamera.startPreview();
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
-            if (currentCam == camFront) {
-                final Handler handler = new Handler();
-                handler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        capture();
-                    }
-                }, 2000);
-            }
-
         }
     }
 
@@ -721,6 +815,10 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
 
         int rw = mutableBitmap.getWidth();
         int rh = mutableBitmap.getHeight();
+        if (firstCapRotate == 0 || firstCapRotate == 180) {
+            rw = mutableBitmap.getHeight();
+            rh = mutableBitmap.getWidth();
+        }
         int w = mutableBitmap.getWidth();
         int h = mutableBitmap.getHeight();
 
@@ -739,7 +837,7 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
         paintPic.setAlpha(200);
         Rect destinationRect = new Rect();
         destinationRect.set(0, 0, (int) (w * 0.2), (int) (h * 0.2));
-        destinationRect.offsetTo((int) (w * 0.02), ((int) (h * 0.98) - (int) (h * 0.2)));
+        destinationRect.offsetTo((int) (w * 0.02), ((int) (h * 0.95) - (int) (h * 0.2)));
         canvas.drawBitmap(bmpFront, null, destinationRect, paintPic);
         bmpFront.recycle();
 
@@ -748,43 +846,62 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
         paint.setTextAlign(Paint.Align.RIGHT);
         paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.NORMAL));
         paint.setColor(clr);
-        paint.setTextSize((int) (h * 0.04));
+        paint.setTextSize((int) (rh * 0.04));
         paint.setShadowLayer((float) 0.02, 1, 1, Color.BLACK);
-        canvas.drawText(formattedDate, globalOffsetR, (int) (h * 0.06), paint);
+        canvas.drawText(formattedDate, globalOffsetR, (int) (rh * 0.06), paint);
 
-        paint.setTextSize((int) (h * 0.04));
-        canvas.drawText(formattedTime, globalOffsetR, (int) (h * 0.10), paint);
+        paint.setTextSize((int) (rh * 0.04));
+        canvas.drawText(formattedTime, globalOffsetR, (int) (rh * 0.10), paint);
 
-        paint.setTextSize((int) (h * 0.025));
+        paint.setTextSize((int) (rh * 0.025));
+        canvas.drawText(modeName, globalOffsetR, (int) (rh * 0.14), paint);
+
+        paint.setTextSize((int) (rh * 0.025));
         String pro = DETAIL.replace("ขึ้น", "").replace("ลง", "");
-        int x = globalOffsetR, y = (int) (h * 0.15);
-        for (String line : pro.split("\n")) {
-            canvas.drawText(line, x, y, paint);
-            y += -paint.ascent() + paint.descent();
+        int x = globalOffsetR, y = (int) (rh * 0.18);
+        String[] linePro = pro.split("\n");
+        for (int i = 0; i < linePro.length; ++i) {
+            canvas.drawText(linePro[i], x, y, paint);
+            if (i != linePro.length - 1) {
+                y += -paint.ascent() + paint.descent();
+            }
         }
 
         int Begin = 0;
+        y += (int) (rh * 0.01);
         for (int i = 0; i <= stat.length(); ++i) {
-            if (i % 25 == 0 || i == stat.length()) {
+            if (i % 23 == 0 || i == stat.length()) {
                 canvas.drawText(stat.substring(Begin, i), x, y, paint);
-                y += -paint.ascent() + paint.descent();
+                if (i != stat.length()) {
+                    y += -paint.ascent() + paint.descent();
+                }
                 Begin = i;
             }
         }
 
-        //y += -paint.ascent() + paint.descent();
+        y += (int) (rh * 0.01);
         if (comment != null && !comment.equalsIgnoreCase("")) {
-            paint.setTextSize((int) (h * 0.03));
+            paint.setTextSize((int) (rh * 0.03));
             if (comment.contains("\n")) {
                 y += -paint.ascent() + paint.descent();
                 for (String line : comment.split("\n")) {
-                    canvas.drawText(line, x, y, paint);
-                    y += -paint.ascent() + paint.descent();
+
+                    /*canvas.drawText(line, x, y, paint);
+                    y += -paint.ascent() + paint.descent();*/
+                    int Start = 0;
+                    for (int i = 1; i <= line.length() + 1; ++i) {
+                        if (i % 21 == 0 || i == line.length() + 1) {
+                            //Log.d("TEST Hash", line + " " + y + " " + (i - 1));
+                            canvas.drawText(line.substring(Start, i - 1), x, y, paint);
+                            y += -paint.ascent() + paint.descent();
+                            Start = i - 1;
+                        }
+                    }
                 }
             } else {
                 int Start = 0, End = 0;
                 for (int i = 0; i <= comment.length(); ++i) {
-                    if (i % 25 == 0 || i == comment.length()) {
+                    if (i % 20 == 0 || i == comment.length()) {
                         canvas.drawText(comment.substring(Start, i), x, y, paint);
                         y += -paint.ascent() + paint.descent();
                         Start = i;
@@ -798,51 +915,32 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
         canvas.drawText(WOHEADER_DOCID2, globalOffsetL, (int) (h * 0.05), paint);
 
         paint.setTextSize((int) (h * 0.03));
-        canvas.drawText(sp.getString("firstname", "") + " " + sp.getString("lastname", ""), ((int) (w * 0.02) + (int) (w * 0.22)), (int) (h * 0.80), paint);
+        canvas.drawText(sp.getString("firstname", "") + " " + sp.getString("lastname", ""), ((int) (w * 0.02) + (int) (w * 0.22)), (int) (h * 0.775), paint);
 
         paint.setTextSize((int) (h * 0.03));
-        canvas.drawText(sp.getString("empid", ""), ((int) (w * 0.02) + (int) (w * 0.22)), (int) (h * 0.84), paint);
+        canvas.drawText(sp.getString("empid", ""), ((int) (w * 0.02) + (int) (w * 0.22)), (int) (h * 0.815), paint);
 
         paint.setTextSize((int) (h * 0.03));
-        canvas.drawText("เบอร์รถ " + sp.getString("truckid", ""), ((int) (w * 0.02) + (int) (w * 0.22)), (int) (h * 0.88), paint);
+        canvas.drawText("เบอร์รถ " + sp.getString("truckid", ""), ((int) (w * 0.02) + (int) (w * 0.22)), (int) (h * 0.855), paint);
 
         paint.setTextSize((int) (h * 0.025));
-        canvas.drawText(String.format("GPS: %.5f,%.5f", Double.parseDouble(sp.getString("latitude", "0")), Double.parseDouble(sp.getString("longtitude", "0"))), ((int) (w * 0.02) + (int) (w * 0.22)), (int) (h * 0.935), paint);
+        canvas.drawText(String.format("GPS: %.5f,%.5f", Double.parseDouble(sp.getString("latitude", "0")), Double.parseDouble(sp.getString("longtitude", "0"))), ((int) (w * 0.02) + (int) (w * 0.22)), (int) (h * 0.91), paint);
 
         paint.setTextSize((int) (h * 0.025));
-        canvas.drawText(sp.getString("locationname", "Location Not Found"), ((int) (w * 0.02) + (int) (w * 0.22)), (int) (h * 0.97), paint);
+        canvas.drawText(sp.getString("locationname", "Location Not Found"), ((int) (w * 0.02) + (int) (w * 0.22)), (int) (h * 0.945), paint);
+
+        paint.setTextSize((int) (h * 0.025));
+        canvas.drawText(sp.getString("tel", "0800000000"), ((int) (w * 0.02)), (int) (h * 0.98), paint);
 
         /* Paint edge */
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth((int) (rh * 0.02));
         paint.setShadowLayer((float) 0.00, 0, 0, Color.BLACK);
         paint.setColor(Color.WHITE);
-        canvas.drawRect(0, 0, rw, rh, paint);
+        canvas.drawRect(0, 0, w, h, paint);
 
         System.gc();
         return mutableBitmap;
-    }
-
-    private Camera.Size getOptimalPreviewSize(int width, int height, Camera.Parameters parameters) {
-        Camera.Size result = null;
-
-        for (Camera.Size size : parameters.getSupportedPreviewSizes()) {
-            if (size.width <= width && size.height <= height) {
-                if (result == null) {
-                    result = size;
-                } else {
-                    int resultArea = result.width * result.height;
-                    int newArea = size.width * size.height;
-
-                    if (newArea > resultArea) {
-                        result = size;
-                    }
-                }
-            }
-        }
-
-        //this.size = result;
-        return (result);
     }
 
     private class Loading extends AsyncTask {
@@ -860,6 +958,72 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
             Log.d("Result savestate", result);
             return null;
         }
+    }
+
+    private class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
+
+        Context context;
+        ArrayAdapter<String> arrayAdapter;
+
+        public Adapter(Context context, ArrayAdapter<String> arrayAdapter) {
+            this.context = context;
+            this.arrayAdapter = arrayAdapter;
+        }
+
+        @Override
+        public void onBindViewHolder(Adapter.ViewHolder holder, int position) {
+            holder.dialogTxt.setText(arrayAdapter.getItem(position));
+        }
+
+        @Override
+        public int getItemCount() {
+            return arrayAdapter.getCount();
+        }
+
+        @Override
+        public Adapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.dialoglist_item, parent, false);
+            ViewHolder viewHolder = new ViewHolder(view);
+            return viewHolder;
+        }
+
+        public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
+
+            TextView dialogTxt;
+
+            public ViewHolder(View itemView) {
+                super(itemView);
+                dialogTxt = (TextView) itemView.findViewById(R.id.dialoglist_txt);
+                itemView.setOnClickListener(this);
+            }
+
+            @Override
+            public void onClick(View v) {
+                input.setText(arrayAdapter.getItem(getAdapterPosition()));
+                dialogList2.dismiss();
+            }
+        }
+
+
+    }
+
+    public boolean hasFlash() {
+        if (mCamera == null) {
+            return false;
+        }
+
+        Camera.Parameters parameters = mCamera.getParameters();
+
+        if (parameters.getFlashMode() == null) {
+            return false;
+        }
+
+        List<String> supportedFlashModes = parameters.getSupportedFlashModes();
+        if (supportedFlashModes == null || supportedFlashModes.isEmpty() || supportedFlashModes.size() == 1 && supportedFlashModes.get(0).equals(Camera.Parameters.FLASH_MODE_OFF)) {
+            return false;
+        }
+
+        return true;
     }
 
 }

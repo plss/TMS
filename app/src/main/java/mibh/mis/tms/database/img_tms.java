@@ -2,6 +2,10 @@ package mibh.mis.tms.database;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.util.Log;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -22,20 +26,34 @@ public class img_tms {
     public static final String IMG_WORK_WEIGHT = "14";
     public static final String IMG_WORK_WASH = "15";
     public static final String IMG_WORK_PROBLEM = "16";
-    public static final String IMG_WORK_OTHER = "17";
+    public static final String IMG_WORK_ACCIDENT = "17";
+    public static final String IMG_WORK_OTHER = "91";
 
     /* Image GroupType เติมเชื้่อเพลิง GTYPE_FUEL*/
     public static final String IMG_FUELLOCATION = "30";
     public static final String IMG_FUELDOC = "31";
-    public static final String IMG_FUELOTHER = "32";
+    public static final String IMG_FUELCAR = "32";
+    public static final String IMG_FUELOTHER = "93";
 
     public static final String IMG_SIGN_RECEIVE = "50";
     public static final String IMG_SIGN_SUBMIT = "51";
+
+    /* Image Maintenance */
+    public static final String IMG_MTNCAR = "100";
+    public static final String IMG_MTNASSET = "101";
+    public static final String IMG_MTNHUMAN = "102";
+    public static final String IMG_MTNDRIVERREJECT = "107";
+    public static final String IMG_MTNTRUCKREJECT = "108";
+    public static final String IMG_MTNOTHER = "109";
+
+    public static final String IMG_OTHER = "999";
 
     /* Image GroupType  */
     public static final String GTYPE_WORK = "WORK";
     public static final String GTYPE_FUEL = "FUEL";
     public static final String GTYPE_STGNATURE = "SIGNATURE";
+    public static final String GTYPE_MAINTENANCE = "MAINTENANCE";
+    public static final String GTYPE_OTHER = "OTHER";
 
     public static final String ACTIVE = "ACTIVE";
     public static final String INACTIVE = "INACTIVE";
@@ -45,44 +63,62 @@ public class img_tms {
         String Dname = "";
 
 
-        if (img_type.equalsIgnoreCase(this.IMG_WORK_STATION)) {
+        if (img_type.equalsIgnoreCase(IMG_WORK_STATION)) {
             Dname = "สถานี";
         }
-        if (img_type.equalsIgnoreCase(this.IMG_WORK_PRODUCT)) {
+        if (img_type.equalsIgnoreCase(IMG_WORK_PRODUCT)) {
             Dname = "สินค้า";
         }
-        if (img_type.equalsIgnoreCase(this.IMG_WORK_DOCUMENT)) {
+        if (img_type.equalsIgnoreCase(IMG_WORK_DOCUMENT)) {
             Dname = "เอกสาร/DO";
         }
-        if (img_type.equalsIgnoreCase(this.IMG_WORK_TRUCK)) {
+        if (img_type.equalsIgnoreCase(IMG_WORK_TRUCK)) {
             Dname = "รถ";
         }
-        if (img_type.equalsIgnoreCase(this.IMG_WORK_WEIGHT)) {
+        if (img_type.equalsIgnoreCase(IMG_WORK_WEIGHT)) {
             Dname = "ห้องชั่ง";
         }
-        if (img_type.equalsIgnoreCase(this.IMG_WORK_WASH)) {
+        if (img_type.equalsIgnoreCase(IMG_WORK_WASH)) {
             Dname = "ล้างรถ";
         }
-        if (img_type.equalsIgnoreCase(this.IMG_WORK_PROBLEM)) {
+        if (img_type.equalsIgnoreCase(IMG_WORK_PROBLEM)) {
             Dname = "แจ้งปัญหา";
         }
-        if (img_type.equalsIgnoreCase(this.IMG_WORK_OTHER)) {
+        if (img_type.equalsIgnoreCase(IMG_WORK_ACCIDENT)) {
+            Dname = "อุบัติเหตุ";
+        }
+        if (img_type.equalsIgnoreCase(IMG_WORK_OTHER)) {
             Dname = "อื่นๆ";
         }
-        if (img_type.equalsIgnoreCase(this.IMG_FUELLOCATION)) {
+        if (img_type.equalsIgnoreCase(IMG_FUELLOCATION)) {
             Dname = "สถานีเชื้อเพลิง";
         }
-        if (img_type.equalsIgnoreCase(this.IMG_FUELDOC)) {
+        if (img_type.equalsIgnoreCase(IMG_FUELDOC)) {
             Dname = "เอกสาร/ใบเสร็จ";
         }
-        if (img_type.equalsIgnoreCase(this.IMG_FUELOTHER)) {
+        if (img_type.equalsIgnoreCase(IMG_FUELCAR)) {
+            Dname = "รถ";
+        }
+        if (img_type.equalsIgnoreCase(IMG_FUELOTHER)) {
             Dname = "อื่นๆ";
         }
-        if (img_type.equalsIgnoreCase(this.IMG_SIGN_RECEIVE)) {
+        if (img_type.equalsIgnoreCase(IMG_SIGN_RECEIVE)) {
             Dname = "เซ็นรับสินค้า";
         }
-        if (img_type.equalsIgnoreCase(this.IMG_SIGN_SUBMIT)) {
+        if (img_type.equalsIgnoreCase(IMG_SIGN_SUBMIT)) {
             Dname = "เซ็นส่งสินค้า";
+        }
+        if (img_type.equalsIgnoreCase(IMG_MTNCAR)) {
+            Dname = "รถ";
+        }
+        if (img_type.equalsIgnoreCase(IMG_MTNASSET)) {
+            Dname = "อุปกรณ์ประจำรถ";
+        }
+        if (img_type.equalsIgnoreCase(IMG_MTNHUMAN)) {
+            Dname = "พนักงาน";
+        }
+        if (img_type.equalsIgnoreCase(IMG_MTNOTHER)) {
+            Dname = "อื่นๆ";
         }
 
         return Dname;
@@ -109,15 +145,6 @@ public class img_tms {
 
     }
 
-
-    /****************************< Function comment >*************************/
-    /** NAME		 : -			                                      	**/
-    /** PARAMETERS	 : none		                                           	**/
-    /** RETURN VALUE : none                                                	**/
-    /** DESCRIPTION  : -					                               	**/
-    /**
-     * *********************************************************************
-     */
     public static class Image_tms {
         public String WorkHid = "";
         public String Group_Type = "";
@@ -131,6 +158,28 @@ public class img_tms {
         public String Comment = "";
 
         Image_tms() {
+        }
+    }
+
+    public static class Hashtag_TB_TMS {
+        public String TB_Name = "";
+        public String Server_Date = "";
+
+        Hashtag_TB_TMS() {
+
+        }
+    }
+
+    public static class Hashtag_TMS {
+        public String list_id = "";
+        public String list_name = "";
+        public String group_id = "";
+        public String type_id = "";
+        public String server_date = "";
+        public String status = "";
+
+        Hashtag_TMS() {
+
         }
     }
 
@@ -415,7 +464,7 @@ public class img_tms {
     /****************************< Function comment >*************************/
     /** NAME		 : -			                                      	**/
     /** PARAMETERS	 : none		                                           	**/
-    /** RETURN VALUE : BT+yymm+Ck_id + runing 2 digit                                               	**/
+    /** RETURN VALUE : BT+yymm+Ck_id + runing 2 digit                       **/
     /** DESCRIPTION  : -					                               	**/
     /**
      * *********************************************************************
@@ -432,6 +481,111 @@ public class img_tms {
 
     public void close() {
         DB_TMS.close();
+    }
+
+    public ArrayList<Hashtag_TB_TMS> HT_GetDateTbHashtag(String Name) {
+        ArrayList<Hashtag_TB_TMS> ArrList = new ArrayList<>();
+        Cursor c = DB_TMS.GetDateHashtag(Name);
+        if (c.getCount() > 0) {
+            if (c.moveToFirst()) {
+                do {
+                    Hashtag_TB_TMS m = new Hashtag_TB_TMS();
+                    m.TB_Name = DB_TMS.GetString(c, DB_TMS.ht_tb_name, "");
+                    m.Server_Date = DB_TMS.GetString(c, DB_TMS.ht_last_date, "");
+                    ArrList.add(m);
+
+                } while (c.moveToNext());
+            }
+        }
+        c.close();
+        return ArrList;
+    }
+
+    public ArrayList<Hashtag_TMS> HT_GetHashtag() {
+        ArrayList<Hashtag_TMS> ArrList = new ArrayList<>();
+        Cursor c = DB_TMS.GetHashtag();
+        if (c.getCount() > 0) {
+            if (c.moveToFirst()) {
+                do {
+                    Hashtag_TMS m = new Hashtag_TMS();
+                    m.list_id = DB_TMS.GetString(c, DB_TMS.htv_list_id, "");
+                    m.list_name = DB_TMS.GetString(c, DB_TMS.htv_list_name, "");
+                    m.group_id = DB_TMS.GetString(c, DB_TMS.htv_group_id, "");
+                    m.type_id = DB_TMS.GetString(c, DB_TMS.htv_type_id, "");
+                    m.server_date = DB_TMS.GetString(c, DB_TMS.htv_server_date, "");
+                    m.status = DB_TMS.GetString(c, DB_TMS.htv_status, "");
+                    ArrList.add(m);
+                } while (c.moveToNext());
+            }
+        }
+        c.close();
+        return ArrList;
+    }
+
+    public ArrayList<Hashtag_TMS> GetHashtagByGtypeAndImgType(String vGroup_Type, String vImg_Type) {
+        ArrayList<Hashtag_TMS> ArrList = new ArrayList<>();
+        Cursor c = DB_TMS.GetHashtagByGtypeAndImgType(vGroup_Type, vImg_Type);
+        if (c.getCount() > 0) {
+            if (c.moveToFirst()) {
+                do {
+                    Hashtag_TMS m = new Hashtag_TMS();
+                    m.list_id = DB_TMS.GetString(c, DB_TMS.htv_list_id, "");
+                    m.list_name = DB_TMS.GetString(c, DB_TMS.htv_list_name, "");
+                    m.group_id = DB_TMS.GetString(c, DB_TMS.htv_group_id, "");
+                    m.type_id = DB_TMS.GetString(c, DB_TMS.htv_type_id, "");
+                    m.server_date = DB_TMS.GetString(c, DB_TMS.htv_server_date, "");
+                    m.status = DB_TMS.GetString(c, DB_TMS.htv_status, "");
+                    ArrList.add(m);
+                } while (c.moveToNext());
+            }
+        }
+        c.close();
+        return ArrList;
+    }
+
+    public ArrayList<Hashtag_TMS> GetHashtagByGtype(String vGroup_Type) {
+        ArrayList<Hashtag_TMS> ArrList = new ArrayList<>();
+        Cursor c = DB_TMS.GetHashtagByGtype(vGroup_Type);
+        if (c.getCount() > 0) {
+            if (c.moveToFirst()) {
+                do {
+                    Hashtag_TMS m = new Hashtag_TMS();
+                    m.list_id = DB_TMS.GetString(c, DB_TMS.htv_list_id, "");
+                    m.list_name = DB_TMS.GetString(c, DB_TMS.htv_list_name, "");
+                    m.group_id = DB_TMS.GetString(c, DB_TMS.htv_group_id, "");
+                    m.type_id = DB_TMS.GetString(c, DB_TMS.htv_type_id, "");
+                    m.server_date = DB_TMS.GetString(c, DB_TMS.htv_server_date, "");
+                    m.status = DB_TMS.GetString(c, DB_TMS.htv_status, "");
+                    ArrList.add(m);
+                } while (c.moveToNext());
+            }
+        }
+        c.close();
+        return ArrList;
+    }
+
+    public void UpsertTbHashtag(String DateServer) {
+        DB_TMS.UpsertTbHashtag("TbHashtag", DateServer);
+    }
+
+    public void UpsertHashtag(String jsonResult) {
+        String lastDateServer = jsonResult.substring(0, 12);
+        String strHashtag = jsonResult.substring(12);
+        try {
+            JSONArray data = new JSONArray(strHashtag);
+            for (int i = 0; i < data.length(); i++) {
+                JSONObject c = data.getJSONObject(i);
+                DB_TMS.UpsertHashtag(c.getString("LIST_ID"),
+                        c.getString("LIST_NAME"),
+                        c.getString("GROUP_ID"),
+                        c.getString("TYPE_ID"),
+                        c.getString("SERVERDATE"),
+                        c.getString("STATUS"));
+            }
+            UpsertTbHashtag(lastDateServer);
+        } catch (Exception e) {
+            Log.d("Convert Hashtag", e.toString());
+        }
     }
 
 }

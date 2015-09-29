@@ -1,8 +1,8 @@
 package mibh.mis.tms.service;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -11,6 +11,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Environment;
+import android.support.v7.app.AlertDialog;
 import android.text.Html;
 import android.util.Log;
 
@@ -27,10 +28,8 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import mibh.mis.tms.Login;
-
 /**
- * Created by ponlakiss on 06/09/2015.
+ * Created by ponlakiss on 07/21/2015.
  */
 public class Version {
 
@@ -43,27 +42,13 @@ public class Version {
     private static final int progress_bar_type = 0;
     private int downloadedSize = 0, downloadtotalSize = 0;
     private boolean isCheckingUpdate = false;
-    SharedPreferences sp;
+    private SharedPreferences sp;
+    private SharedPreferences.Editor edit;
 
     public Version(final Activity act) {
         this.act = act;
-        try {
-            convertVersion(new CallService().getActiveVersion());
-            appName = GetApplicationName();
-            appVer = GetVersionName();
-        } catch (Exception e) {
-            e.printStackTrace();
-            AlertDialog.Builder builderSingle = new AlertDialog.Builder(act);
-            builderSingle.setMessage("ไม่สามารถตนวจสอบเวอชันได้");
-            builderSingle.setPositiveButton("ตกลง",
-                    new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            act.finish();
-                        }
-                    });
-        }
-        DoUpdateProcess();
+        sp = act.getSharedPreferences("info", Context.MODE_PRIVATE);
+        new checkVersion().execute();
     }
 
     public String GetVersionName() {
@@ -124,18 +109,64 @@ public class Version {
                             dialog.dismiss();
                         }
                     });
-            if (!appVer.equals(newVersion)) {
+            if (!appVer.equals(newVersion) && newVersion != null) {
                 builderSingle.show();
             } else {
-                Intent mainIntent = new Intent(act,Login.class);
+                /*Intent mainIntent = new Intent(act, Login.class);
                 act.startActivity(mainIntent);
-                act.finish();
+                act.finish();*/
             }
         } catch (Exception e) {
-            e.printStackTrace();
-            Intent mainIntent = new Intent(act,Login.class);
+            Log.d("TEST VERION",e.toString());
+            /*Intent mainIntent = new Intent(act, Login.class);
             act.startActivity(mainIntent);
-            act.finish();
+            act.finish();*/
+        }
+    }
+
+    class checkVersion extends AsyncTask<String, String, String> {
+        @Override
+        protected String doInBackground(String... strings) {
+            return new CallService().getActiveVersion();
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            super.onPostExecute(s);
+            Log.d("TEST VERSION", s);
+            try {
+                if (s.equalsIgnoreCase("error") || s.equalsIgnoreCase("")) {
+                    AlertDialog.Builder builderSingle = new AlertDialog.Builder(act);
+                    builderSingle.setMessage("ไม่สามารถตนวจสอบเวอชันได้");
+                    builderSingle.setPositiveButton("ตกลง",
+                            new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    act.finish();
+                                }
+                            });
+                } else {
+                    appName = GetApplicationName();
+                    appVer = GetVersionName();
+                    edit = sp.edit();
+                    edit.putString("VERSION",appVer);
+                    edit.apply();
+                    convertVersion(s);
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                AlertDialog.Builder builderSingle = new AlertDialog.Builder(act);
+                builderSingle.setMessage("ไม่สามารถตรวจสอบเวอชันได้");
+                builderSingle.setPositiveButton("ตกลง",
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                act.finish();
+                            }
+                        });
+            }
+            DoUpdateProcess();
         }
     }
 
@@ -260,6 +291,9 @@ public class Version {
         protected void onPostExecute(String file_url) {
             // dismiss the dialog after the file was downloaded
             progressBar.dismiss();
+            edit = sp.edit();
+            edit.putString("VERSION",newVersion);
+            edit.apply();
             Intent intent = new Intent(Intent.ACTION_VIEW);
             intent.setDataAndType(Uri.fromFile(new File(Environment.getExternalStorageDirectory() + "/download/" + appName)), "application/vnd.android.package-archive");
             act.startActivity(intent);

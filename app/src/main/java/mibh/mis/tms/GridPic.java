@@ -58,6 +58,11 @@ public class GridPic extends AppCompatActivity {
         }
 
         ImgTms = new img_tms(GridPic.this);
+        Arr = ImgTms.Img_GetImageByGroupType(WOHEADER_DOCID, from);
+        /*Log.d("TEST Grid", WOHEADER_DOCID + " " + from + " " + ITEM + " " + TYPE_IMG);
+        for (int i = 0; i < Arr.size(); ++i) {
+            Log.d("TEST " + i, Arr.get(i).Doc_item + " " + Arr.get(i).Type_img);
+        }*/
         Arr = ImgTms.Img_GetImageByDoc_itemAndGroupTypeAndImg_Type(WOHEADER_DOCID, from, ITEM, TYPE_IMG);
         ImgTms.close();
         mCheckStates = new SparseBooleanArray(Arr.size());
@@ -205,7 +210,8 @@ public class GridPic extends AppCompatActivity {
                     shareIntent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, imageUris);
                     shareIntent.setType("image/*");
                     startActivity(Intent.createChooser(shareIntent, "Share images to.."));
-                }catch (Exception e){  }
+                } catch (Exception e) {
+                }
                 break;
             case android.R.id.home:
                 GridPic.this.finish();

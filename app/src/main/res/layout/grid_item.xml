@@ -3,21 +3,18 @@
     android:layout_width="fill_parent"
     android:layout_height="fill_parent">
 
-    <ImageView
+    <mibh.mis.tms.SquareImageView
         android:id="@+id/thumbImage"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_centerInParent="true"
-        android:adjustViewBounds="true"
-        android:scaleType="fitXY" />
+        android:scaleType="centerCrop" />
 
     <CheckBox
         android:id="@+id/itemCheckBox"
-        android:background="#FFF"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentRight="true"
-        android:scaleX="1"
-        android:scaleY="1"
-        android:layout_alignParentTop="true" />
+        android:layout_alignParentTop="true"
+        android:button="@drawable/custom_checkbox"/>
 </RelativeLayout>
