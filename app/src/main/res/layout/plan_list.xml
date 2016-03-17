@@ -39,7 +39,7 @@
                 <RelativeLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:background="@android:color/holo_green_dark"
+                    android:background="@color/custom_green"
                     android:layout_weight="1"
                     android:id="@+id/acceptPlan">
 
@@ -47,7 +47,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="ยืนยันเปิดงาน"
-                        android:id="@+id/textView"
+                        android:id="@+id/acceptTxt"
                         android:textSize="@dimen/abc_text_size_title_material"
                         android:textColor="@android:color/white"
                         android:layout_centerInParent="true" />
@@ -56,7 +56,7 @@
                 <RelativeLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:background="@android:color/holo_red_dark"
+                    android:background="@color/custom_red"
                     android:layout_weight="1"
                     android:id="@+id/rejectPlan">
 

@@ -17,18 +17,6 @@
             android:id="@+id/drawer_fuel"
             android:icon="@drawable/fuel"
             android:title="@string/menu.fuel" />
-<!--
-
-        <item
-            android:id="@+id/drawer_docwork"
-            android:icon="@drawable/doc"
-            android:title="@string/menu.doc.work" />
-
-        <item
-            android:id="@+id/drawer_docfuel"
-            android:icon="@drawable/doc"
-            android:title="@string/menu.doc.fuel" />
--->
 
         <item
             android:id="@+id/drawer_cash"
@@ -51,9 +39,19 @@
             android:title="@string/menu.cam" />
 
         <item
+            android:id="@+id/drawer_scanqr"
+            android:icon="@drawable/qrcode"
+            android:title="@string/menu.scanqr" />
+
+        <item
             android:id="@+id/drawer_weight"
             android:icon="@drawable/scale"
             android:title="@string/menu.reserve.weight" />
+
+        <item
+            android:id="@+id/drawer_hrms"
+            android:icon="@drawable/calendar_time"
+            android:title="@string/menu.hrms" />
 
         <item
             android:id="@+id/drawer_logout"

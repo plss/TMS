@@ -60,53 +60,44 @@ public class GetLocation implements LocationListener {
         try {
             sp = mContext.getSharedPreferences("info", Context.MODE_PRIVATE);
             editor = sp.edit();
-            Log.d("test", "1");
             locationManager = (LocationManager) mContext.getSystemService(Context.LOCATION_SERVICE);
             isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
             isNetWorkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-            Log.d("test", "2");
             if (!isGPSEnabled && !isNetWorkEnabled) {
-                //no network enabld
+                //no network enabled
             } else {
                 this.canGetLoaction = true;
                 if (isNetWorkEnabled) {
                     locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, MIN_TIME_BW_UPDATES, MIN_DISTANCE_CHANGE_FOR_UPDATES, this);
-                    Log.d("Network", "Network");
                     if (locationManager != null) {
                         location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
                         if (location != null) {
                             latitude = location.getLatitude();
                             longitude = location.getLongitude();
-                            //locationName = getLocationName(latitude, longitude);
                             editor.putString("latitude", String.valueOf(latitude));
                             editor.putString("longtitude", String.valueOf(longitude));
+                            editor.apply();
                             new getLocationName(latitude, longitude).execute();
-                            //editor.putString("locationname", getName());
                         }
                     }
                 }
-                Log.d("test", "3");
                 if (isGPSEnabled) {
                     if (location == null) {
                         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_TIME_BW_UPDATES, MIN_DISTANCE_CHANGE_FOR_UPDATES, this);
-                        Log.d("GPS Enabled", "GPS Enabled");
                         if (locationManager != null) {
                             location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
                             if (location != null) {
                                 latitude = location.getLatitude();
                                 longitude = location.getLongitude();
-                                //locationName = getLocationName(latitude, longitude);
                                 editor.putString("latitude", String.valueOf(latitude));
                                 editor.putString("longtitude", String.valueOf(longitude));
-                                //editor.putString("locationname", getName());
+                                editor.apply();
                                 new getLocationName(latitude, longitude).execute();
                             }
                         }
                     }
                 }
             }
-            Log.d("test", "4");
-            editor.commit();
         } catch (Exception e) {
             Log.d("error Location", e.toString());
         }
@@ -140,26 +131,6 @@ public class GetLocation implements LocationListener {
         return "Location not found";
     }
 
-/*    public String getLocationName(double latitude, double longitude) {
-        String Locations = "";
-        try {
-            //List<String> providerList = locationManager.getAllProviders();
-            //if(null!=location && null!=providerList && providerList.size()>0) {
-            //double longitude = location.getLongitude();
-            //double latitude = location.getLatitude();
-            Geocoder geocoder = new Geocoder(mContext, Locale.getDefault());
-            List<Address> listAddresses = geocoder.getFromLocation(latitude, longitude, 1);
-            if (null != listAddresses && listAddresses.size() > 0) {
-                Locations = listAddresses.get(0).getAddressLine(0);
-            }
-            //}
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "Location not found";
-        }
-        return Locations;
-    }*/
-
     public boolean canGetLocation() {
         return this.canGetLoaction;
     }
@@ -177,7 +148,7 @@ public class GetLocation implements LocationListener {
         if (canGetLoaction) {
             editor.putString("latitude", String.valueOf(latitude));
             editor.putString("longtitude", String.valueOf(longitude));
-            editor.commit();
+            editor.apply();
             new getLocationName(latitude, longitude).execute();
         }
         Log.d("LocationChange2", sp.getString("latitude", "0") + " " + sp.getString("longtitude", "0"));
@@ -198,7 +169,7 @@ public class GetLocation implements LocationListener {
 
     }
 
-    public class getLocationName extends AsyncTask {
+    public class getLocationName extends AsyncTask<Void, Void, Void> {
 
         double lat, lng;
         ArrayList<String> listLocationName;
@@ -207,27 +178,11 @@ public class GetLocation implements LocationListener {
             this.lat = lat;
             this.lng = lng;
             sp = mContext.getSharedPreferences("info", Context.MODE_PRIVATE);
-            editor = sp.edit();
         }
 
         @Override
-        protected String doInBackground(Object[] params) {
+        protected Void doInBackground(Void... params) {
             String Locations = "";
-            /*try {
-                //List<String> providerList = locationManager.getAllProviders();
-                //if(null!=location && null!=providerList && providerList.size()>0) {
-                //double longitude = location.getLongitude();
-                //double latitude = location.getLatitude();
-                Geocoder geocoder = new Geocoder(mContext, Locale.getDefault());
-                List<Address> listAddresses = geocoder.getFromLocation(lat, lng, 1);
-                if (null != listAddresses && listAddresses.size() > 0) {
-                    Locations = listAddresses.get(0).getAddressLine(0);
-                }
-                //}
-            } catch (Exception e) {
-                e.printStackTrace();
-                Locations = "Location not found";
-            }*/
             try {
                 listLocationName = getFromLocation(lat, lng, 1);
                 if (listLocationName.size() > 0) {
@@ -240,9 +195,12 @@ public class GetLocation implements LocationListener {
                 Log.d("Error Location", "Name");
                 Locations = "Location not found";
             }
+            editor = sp.edit();
+            editor.putString("latitude", String.valueOf(lat));
+            editor.putString("longtitude", String.valueOf(lng));
             editor.putString("locationname", Locations);
-            editor.commit();
-            return Locations;
+            editor.apply();
+            return null;
         }
     }
 

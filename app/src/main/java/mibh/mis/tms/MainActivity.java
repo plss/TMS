@@ -6,12 +6,17 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -25,15 +30,27 @@ import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.zxing.BarcodeFormat;
+import com.inthecheesefactory.thecheeselibrary.fragment.support.v4.app.bus.ActivityResultBus;
+import com.inthecheesefactory.thecheeselibrary.fragment.support.v4.app.bus.ActivityResultEvent;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.List;
 
+import mibh.mis.tms.Cam.CamTestActivity;
 import mibh.mis.tms.data.FuelData;
 import mibh.mis.tms.data.PlanData;
 import mibh.mis.tms.data.WorkData;
@@ -74,7 +91,6 @@ public class MainActivity extends AppCompatActivity {
             mCurrentSelectedPosition = 5;
             editor = sp.edit();
             editor.putString("statuscheckdriver", "");
-            editor.putString("statuschecktruck", "");
             editor.apply();
         } else if (sp.getBoolean("WORK", true)) {
             mCurrentSelectedPosition = 1;
@@ -107,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
             case R.id.refresh:
                 if (check.isOnline()) {
                     Toast.makeText(MainActivity.this, "Refresh", Toast.LENGTH_LONG).show();
-                    new RefreshTask(sp.getString("truckid", ""), sp.getString("empid", "")).execute();
+                    new RefreshTask(sp.getString("truckid", ""), sp.getString("empid", ""), this).execute();
                 } else {
                     showAlertDialog();
                 }
@@ -116,6 +132,13 @@ public class MainActivity extends AppCompatActivity {
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        ActivityResultBus.getInstance().postQueue(
+                new ActivityResultEvent(requestCode, resultCode, data));
     }
 
     private void selectedItem(int position) {
@@ -133,14 +156,6 @@ public class MainActivity extends AppCompatActivity {
                 mToolbar.setTitle(R.string.menu_fuel);
                 fragment = new FuelList();
                 break;
-            /*case 3:
-                mToolbar.setTitle(R.string.menu_doc_work);
-                fragment = new DocheaderPage();
-                break;
-            case 4:
-                mToolbar.setTitle(R.string.menu_doc_fuel);
-                fragment = new DocfuelPage();
-                break;*/
             case 3:
                 if (check.isOnline()) {
                     fragment = new Income();
@@ -169,9 +184,9 @@ public class MainActivity extends AppCompatActivity {
                 if (validateLatLng.check(sp)) {
                     fragment = new CameraFragment();
                     mToolbar.setTitle(R.string.menu_cam);
-                    Intent intent = new Intent(MainActivity.this, CameraMain.class);
+                    Intent intent = new Intent(MainActivity.this, CamTestActivity.class);
                     intent.putExtra("From", img_tms.GTYPE_OTHER);
-                    intent.putExtra("WOHEADER_DOCID", sp.getString("lastwork","OTHER"));
+                    intent.putExtra("WOHEADER_DOCID", sp.getString("lastwork", "OTHER"));
                     intent.putExtra("ITEM", "10");
                     intent.putExtra("Type_Img", img_tms.IMG_OTHER);
                     startActivity(intent);
@@ -188,34 +203,47 @@ public class MainActivity extends AppCompatActivity {
                     AlertDialog alertDialog = alertDialogBuilder.create();
                     alertDialog.show();
                 }
-
                 break;
-            /*case 8:
-                try {
-                    Intent intent = getPackageManager().getLaunchIntentForPackage("doublea.mobile.kunna.camlocator");
-                    intent.addCategory(Intent.CATEGORY_LAUNCHER);
-                    startActivity(intent);
-                } catch (Exception e) {
-                    Log.d("Error open photostamp", e.toString());
-                    AlertDialog.Builder builderSingle = new AlertDialog.Builder(MainActivity.this);
-                    builderSingle.setMessage("กรุณาติดตั้ง Photo Stamp");
-                    builderSingle.setPositiveButton("ตกลง",
-                            new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    dialog.dismiss();
-                                }
-                            });
-                    builderSingle.show();
-                }
-                break;*/
+
             case 7:
+                if (check.isOnline()) {
+                    Intent intent = new Intent("com.google.zxing.client.android.SCAN");
+                    intent.setPackage("com.google.zxing.client.android");
+                    intent.putExtra("SCAN_FORMATS", "CODE_39,CODE_93,CODE_128,DATA_MATRIX,ITF,CODABAR,EAN_13,EAN_8,UPC_A,QR_CODE");
+                    if (isCallable(intent)) {
+                        startActivityForResult(intent, 7);
+                    } else {
+                        AlertDialog.Builder builderSingle = new AlertDialog.Builder(this);
+                        builderSingle.setMessage("ไม่สามารถใช้งานในส่วนนี้ได้ ต้องทำการติดตั้ง Barcode Sacnner เพื่อใช้งาน");
+                        builderSingle.setCancelable(false);
+                        builderSingle.setPositiveButton("ตกลง", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                new DownloadFileFromURL().execute();
+                                dialog.dismiss();
+                            }
+                        });
+                        builderSingle.setNegativeButton("ยกเลิก", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int i) {
+                                dialog.dismiss();
+                            }
+                        });
+                        builderSingle.show();
+                    }
+                    mToolbar.setTitle(R.string.menu_scanqr);
+                    fragment = new ScanFragment();
+                } else {
+                    showAlertDialog();
+                }
+                break;
+
+            case 8:
                 try {
                     Intent intent = getPackageManager().getLaunchIntentForPackage("com.example.app.wmsonmobile");
                     intent.addCategory(Intent.CATEGORY_LAUNCHER);
                     startActivity(intent);
                 } catch (Exception e) {
-                    Log.d("Error open photostamp", e.toString());
                     AlertDialog.Builder builderSingle = new AlertDialog.Builder(MainActivity.this);
                     builderSingle.setMessage("กรุณาติดตั้ง WMS on mobile");
                     builderSingle.setPositiveButton("ตกลง",
@@ -228,7 +256,31 @@ public class MainActivity extends AppCompatActivity {
                     builderSingle.show();
                 }
                 break;
-            case 8:
+            case 9:
+                try {
+                    Intent intent = getPackageManager().getLaunchIntentForPackage("aa2.network2.hrmsmobileapp2");
+                    intent.addCategory(Intent.CATEGORY_LAUNCHER);
+                    startActivity(intent);
+                } catch (Exception e) {
+                    AlertDialog.Builder builderSingle = new AlertDialog.Builder(MainActivity.this);
+                    builderSingle.setMessage("กรุณาติดตั้ง HRMS on mobile");
+                    builderSingle.setPositiveButton("ตกลง",
+                            new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.dismiss();
+                                    final String appPackageName = "aa2.network2.hrmsmobileapp2"; // getPackageName() from Context or Activity object
+                                    try {
+                                        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + appPackageName)));
+                                    } catch (android.content.ActivityNotFoundException anfe) {
+                                        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=" + appPackageName)));
+                                    }
+                                }
+                            });
+                    builderSingle.show();
+                }
+                break;
+            case 10:
                 logOut();
                 Intent mainIntent = new Intent(MainActivity.this, Login.class);
                 startActivity(mainIntent);
@@ -345,12 +397,18 @@ public class MainActivity extends AppCompatActivity {
                     case R.id.drawer_cam:
                         mCurrentSelectedPosition = 6;
                         break;
-                    case R.id.drawer_weight:
+                    case R.id.drawer_scanqr:
                         mCurrentSelectedPosition = 7;
+                        break;
+                    case R.id.drawer_weight:
+                        mCurrentSelectedPosition = 8;
+                        break;
+                    case R.id.drawer_hrms:
+                        mCurrentSelectedPosition = 9;
                         break;
                     case R.id.drawer_logout:
                         Snackbar.make(mContentFrame, "Log Out", Snackbar.LENGTH_SHORT).show();
-                        mCurrentSelectedPosition = 8;
+                        mCurrentSelectedPosition = 10;
                         break;
                     default:
                         break;
@@ -381,15 +439,19 @@ public class MainActivity extends AppCompatActivity {
     private void logOut() {
         /*SharedPreferences sp = getSharedPreferences("info", 0);
         sp.edit().clear().apply();*/
+        editor = sp.edit();
+        editor.putBoolean("notification", false);
+        editor.apply();
         new WorkData().clearWorkData();
         new PlanData().clearPlanData();
         new FuelData().clearFuelData();
         finish();
     }
 
-    public class RefreshTask extends AsyncTask<Void, Void, String> {
+    public static class RefreshTask extends AsyncTask<Void, Void, String> {
 
-        private ProgressDialog dialog = new ProgressDialog(MainActivity.this);
+        private Context context;
+        private ProgressDialog dialog;
         private String resultServiceWork, resultServicePlan, resultServiceLogin, resultServiceFuel;
         ArrayList<HashMap<String, String>> resultWork, resultPlan;
         private CallService call = new CallService();
@@ -399,10 +461,15 @@ public class MainActivity extends AppCompatActivity {
         private String truckid, empid;
         private String WOHEADER_DOCID;
 
-        public RefreshTask(String truck, String empid) {
+        private SharedPreferences sp;
+        private SharedPreferences.Editor editor;
+
+        public RefreshTask(String truck, String empid, Context context) {
             this.truckid = truck;
             this.empid = empid;
-            editor = sp.edit();
+            this.context = context;
+            dialog = new ProgressDialog(context);
+            sp = context.getSharedPreferences("info", Context.MODE_PRIVATE);
         }
 
         @Override
@@ -419,10 +486,10 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected String doInBackground(Void... params) {
-
+            editor = sp.edit();
             resultServiceLogin = call.checkLogin(truckid, empid);
 
-            if (resultServiceLogin.equalsIgnoreCase(getString(R.string.result_error)) || resultServiceLogin.equalsIgnoreCase(getString(R.string.noresult))) {
+            if (resultServiceLogin.equalsIgnoreCase(context.getString(R.string.result_error)) || resultServiceLogin.equalsIgnoreCase(context.getString(R.string.noresult))) {
                 return resultServiceLogin;
             } else if (resultServiceLogin.equalsIgnoreCase("WORK")) {
                 resultServiceWork = call.callWork(truckid, empid);
@@ -462,22 +529,42 @@ public class MainActivity extends AppCompatActivity {
                     planData.clearPlanData();
                 }
             }
+            editor.apply();
             return resultServiceLogin;
         }
 
         @Override
         protected void onPostExecute(final String result) {
             dialog.dismiss();
-            if (result.equalsIgnoreCase(getString(R.string.result_error))) {
-                showAlertDialog(MainActivity.this, "การเชื่อมต่อผิดพลาด", "กรุณาลองใหม่ภายหลัง");
-            } else if (result.equalsIgnoreCase(getString(R.string.noresult))) {
-                showAlertDialog(MainActivity.this, "ไม่พบข้อมูล", "กรุณาตรวจสอบ เบอร์รถ และ รหัสผนักงาน");
-            } else {
-                editor.commit();
+            if (result.equalsIgnoreCase(context.getString(R.string.result_error))) {
+                showAlertDialog(context, "การเชื่อมต่อผิดพลาด", "กรุณาลองใหม่ภายหลัง");
+            } else if (result.equalsIgnoreCase(context.getString(R.string.noresult))) {
+                showAlertDialog(context, "ไม่พบข้อมูล", "กรุณาตรวจสอบ เบอร์รถ และ รหัสผนักงาน");
+            } else if (sp.getBoolean("WORK", true)) {
+                Fragment fragment = new WorkList();
+                FragmentActivity activity = (FragmentActivity) context;
+                FragmentManager manager = activity.getSupportFragmentManager();
+                manager.beginTransaction().replace(R.id.nav_contentframe, fragment).commit();
+                Toolbar toolbar = (Toolbar) activity.findViewById(R.id.toolbar);
+                toolbar.setTitle(R.string.menu_work);
+                NavigationView navigationView = (NavigationView) activity.findViewById(R.id.nav_view);
+                Menu menu = navigationView.getMenu();
+                menu.getItem(1).setChecked(true);
+
+            } else if (!sp.getBoolean("WORK", true)) {
+                Fragment fragment = new PlanList();
+                FragmentActivity activity = (FragmentActivity) context;
+                FragmentManager manager = activity.getSupportFragmentManager();
+                manager.beginTransaction().replace(R.id.nav_contentframe, fragment).commit();
+                Toolbar toolbar = (Toolbar) activity.findViewById(R.id.toolbar);
+                toolbar.setTitle(R.string.menu_plan);
+                NavigationView navigationView = (NavigationView) activity.findViewById(R.id.nav_view);
+                Menu menu = navigationView.getMenu();
+                menu.getItem(0).setChecked(true);
             }
         }
 
-        public void showAlertDialog(Context context, String title, String message) {
+        public static void showAlertDialog(Context context, String title, String message) {
             AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(context);
             alertDialogBuilder.setTitle(title);
             alertDialogBuilder.setMessage(message);
@@ -531,6 +618,99 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         builder.show();
+    }
+
+    private boolean isCallable(Intent intent) {
+        List<ResolveInfo> list = getPackageManager().queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY);
+        return list.size() > 0;
+    }
+
+    private void DeleteFile(String path, String file) {
+         /*Main directory (SD card directory) */
+        File sdDir = Environment.getExternalStorageDirectory();
+        String sdImageMainDirectory = (sdDir.toString() + path);
+        try {
+            File fXmlFile = new File(sdImageMainDirectory + file);
+            fXmlFile.delete();
+        } catch (Exception e) {
+        }
+    }
+
+    private class DownloadFileFromURL extends AsyncTask<String, String, String> {
+
+        Dialog dialog = new Dialog(MainActivity.this);
+        ProgressBar pbDownload;
+        String urlDownload = "http://www.mibholding.com/Views/Shared/AppTMS/download/BarcodeScanner-4.7.3.apk";
+        String appName = "BarcodeScanner-4.7.3";
+        static final int MAX_APP_FILE_SIZE = 40 * 1024;
+        int downloadedSize = 0, downloadtotalSize = 0;
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            dialog.requestWindowFeature(dialog.getWindow().FEATURE_NO_TITLE);
+            dialog.setContentView(R.layout.dialog_download);
+            dialog.setCancelable(false);
+            pbDownload = (ProgressBar) dialog.findViewById(R.id.pbDownload);
+            pbDownload.setMax(100);
+            dialog.show();
+        }
+
+        @Override
+        protected String doInBackground(String... f_url) {
+            try {
+                URL url = new URL(urlDownload);
+                HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+                urlConnection.setRequestMethod("GET");
+                urlConnection.setDoOutput(false);
+                urlConnection.connect();
+                String PATH = Environment.getExternalStorageDirectory() + "/download/";
+                DeleteFile(PATH, appName);
+                File file = new File(PATH);
+                file.mkdirs();
+                File outputFile = new File(file, appName);
+                FileOutputStream fileOutput = new FileOutputStream(outputFile);
+                InputStream inputStream = urlConnection.getInputStream();
+                downloadtotalSize = urlConnection.getContentLength();
+                Log.d("Version", "File size = " + downloadtotalSize);
+                byte[] buffer = new byte[MAX_APP_FILE_SIZE];
+                int bufferLength = 0;
+                while ((bufferLength = inputStream.read(buffer)) > 0) {
+                    fileOutput.write(buffer, 0, bufferLength);
+                    downloadedSize += bufferLength;
+                    if (pbDownload != null) {
+                        int Progress = (downloadedSize * 100) / downloadtotalSize;
+                        publishProgress("" + (int) Progress);
+                    }
+                }
+                fileOutput.close();
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+                Log.d("Version", "Download error: " + e.toString());
+                System.exit(0);
+            } catch (IOException e) {
+                e.printStackTrace();
+                Log.d("Version", "Download error: " + e.toString());
+                System.exit(0);
+            }
+            return null;
+        }
+
+        protected void onProgressUpdate(String... progress) {
+            // setting progress percentage
+            pbDownload.setProgress(Integer.parseInt(progress[0]));
+        }
+
+        @Override
+        protected void onPostExecute(String file_url) {
+            // dismiss the dialog after the file was downloaded
+            dialog.dismiss();
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(Uri.fromFile(new File(Environment.getExternalStorageDirectory() + "/download/" + appName)), "application/vnd.android.package-archive");
+            startActivity(intent);
+            //System.exit(0);
+        }
+
     }
 
 }

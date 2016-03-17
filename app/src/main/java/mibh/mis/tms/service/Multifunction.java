@@ -59,7 +59,7 @@ public class Multifunction {
             }
 
             return mResponse;
-        } catch (IOException e) {
+        } catch (Exception e) {
             Log.d("Error read", e.toString());
             return "error";
         }

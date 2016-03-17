@@ -14,6 +14,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 
+import mibh.mis.tms.Cam.CamTestActivity;
 import mibh.mis.tms.database.img_tms;
 import mibh.mis.tms.service.validateLatLng;
 
@@ -35,9 +36,9 @@ public class CameraFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 if (validateLatLng.check(sp)) {
-                    Intent intent = new Intent(getActivity(), CameraMain.class);
+                    Intent intent = new Intent(getActivity(), CamTestActivity.class);
                     intent.putExtra("From", img_tms.GTYPE_OTHER);
-                    intent.putExtra("WOHEADER_DOCID", sp.getString("lastwork","OTHER"));
+                    intent.putExtra("WOHEADER_DOCID", sp.getString("lastwork", "OTHER"));
                     intent.putExtra("ITEM", "10");
                     intent.putExtra("Type_Img", img_tms.IMG_OTHER);
                     startActivity(intent);
@@ -61,7 +62,7 @@ public class CameraFragment extends Fragment {
             public void onClick(View v) {
                 Intent intent = new Intent(getActivity(), GridPic.class);
                 intent.putExtra("From", img_tms.GTYPE_OTHER);
-                intent.putExtra("WOHEADER_DOCID", sp.getString("lastwork","OTHER"));
+                intent.putExtra("WOHEADER_DOCID", sp.getString("lastwork", "OTHER"));
                 intent.putExtra("ITEM", "10");
                 intent.putExtra("Type_Img", img_tms.IMG_OTHER);
                 startActivity(intent);

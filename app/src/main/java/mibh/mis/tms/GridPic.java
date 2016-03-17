@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.util.SparseBooleanArray;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -17,6 +18,8 @@ import android.widget.BaseAdapter;
 import android.widget.CheckBox;
 import android.widget.GridView;
 import android.widget.ImageView;
+
+import com.squareup.picasso.Picasso;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -34,7 +37,6 @@ public class GridPic extends AppCompatActivity {
     private String WOHEADER_DOCID, from, ITEM, TYPE_IMG;
     private ArrayList<img_tms.Image_tms> Arr;
     private ArrayList<String> arrFileName;
-    private img_tms ImgTms;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,17 +59,26 @@ public class GridPic extends AppCompatActivity {
             TYPE_IMG = extras.getString("Type_Img");
         }
 
-        ImgTms = new img_tms(GridPic.this);
-        Arr = ImgTms.Img_GetImageByGroupType(WOHEADER_DOCID, from);
+        img_tms ImgTms = new img_tms(GridPic.this);
+        //ArrayList<img_tms.Image_tms> arrTemp;
+        if (from.equalsIgnoreCase(img_tms.GTYPE_OTHER)) {
+            Arr = ImgTms.Img_GetImageByGroupType(from);
+        } else {
+            Arr = ImgTms.Img_GetImageByDoc_itemAndGroupTypeAndImg_Type(WOHEADER_DOCID, from, ITEM, TYPE_IMG);
+        }
+
+
+
         /*Log.d("TEST Grid", WOHEADER_DOCID + " " + from + " " + ITEM + " " + TYPE_IMG);
         for (int i = 0; i < Arr.size(); ++i) {
             Log.d("TEST " + i, Arr.get(i).Doc_item + " " + Arr.get(i).Type_img);
         }*/
-        Arr = ImgTms.Img_GetImageByDoc_itemAndGroupTypeAndImg_Type(WOHEADER_DOCID, from, ITEM, TYPE_IMG);
         ImgTms.close();
         mCheckStates = new SparseBooleanArray(Arr.size());
         gridview.setAdapter(new ImageAdapter(this));
 
+
+        Log.d("TEST IMG", from + " " + TYPE_IMG);
         /*gridview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View v, int position, long id) {
                 if(!mCheckStates.get(position,false)){
@@ -143,7 +154,9 @@ public class GridPic extends AppCompatActivity {
             final File imagesFolder = new File(Environment.getExternalStorageDirectory(), "DCIM/TMS");
             File output = new File(imagesFolder, Arr.get(position).Filename);
             uri = Uri.fromFile(output);
-
+            /*if (output.exists()) {
+                Log.d("test", "YES" + Arr.get(position).Filename);
+            }*/
             holder.imageview.setOnClickListener(new View.OnClickListener() {
                 public void onClick(View v) {
                     // TODO Auto-generated method stub
@@ -156,7 +169,8 @@ public class GridPic extends AppCompatActivity {
                     startActivity(intent);
                 }
             });
-            holder.imageview.setImageURI(uri);
+            Picasso.with(mContext).load(uri).noFade().resize(240, 320).into(holder.imageview);
+            //holder.imageview.setImageURI(uri);
             holder.checkbox.setChecked(mCheckStates.get(position, false));
             holder.id = position;
             return convertView;

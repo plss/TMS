@@ -24,6 +24,8 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
+import com.crashlytics.android.Crashlytics;
+
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -31,6 +33,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 
+import io.fabric.sdk.android.Fabric;
 import mibh.mis.tms.data.DriverData;
 import mibh.mis.tms.data.FuelData;
 import mibh.mis.tms.data.PlanData;
@@ -54,6 +57,7 @@ public class Login extends AppCompatActivity {
     private SharedPreferences.Editor editor;
     private ArrayList<img_tms.Image_tms> cursor;
     private img_tms ImgTms;
+    private static final String TAG = "Login";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,6 +81,7 @@ public class Login extends AppCompatActivity {
             mEmpID.setText(sp.getString("empid", ""));
         }
 
+        Fabric.with(this, new Crashlytics());
         new Version(Login.this);
         new GetLocation(Login.this);
 
@@ -110,8 +115,8 @@ public class Login extends AppCompatActivity {
         mEmpID.setError(null);
 
         // Store values at the time of the login attempt.
-        String truck = mTruckID.getText().toString();
-        String emp = mEmpID.getText().toString();
+        String truck = mTruckID.getText().toString().toUpperCase().trim().replaceAll("\\W", "");
+        String emp = mEmpID.getText().toString().toUpperCase().trim().replaceAll("\\W", "");
 
         boolean cancel = false;
 
@@ -191,7 +196,6 @@ public class Login extends AppCompatActivity {
         protected void onPostExecute(String s) {
             super.onPostExecute(s);
             startService();
-            Log.d("TEST ", "Offline");
             Intent intent = new Intent(Login.this, MainActivity.class);
             startActivity(intent);
             finish();
@@ -238,7 +242,6 @@ public class Login extends AppCompatActivity {
                     return resultServiceLogin;
                 } else if (resultServiceLogin.equalsIgnoreCase("WORK")) {
                     resultServiceWork = call.callWork(truckid, empid);
-                    Log.d("TEST WORK", resultServiceWork);
                     workData.clearWorkData();
                     workData.convert(resultServiceWork);
                     resultWork = workData.getWorkData();
@@ -275,7 +278,7 @@ public class Login extends AppCompatActivity {
                     planData.convert(resultServicePlan);
                     resultPlan = planData.getPlanData();
                     sentLog(resultPlan.get(0).get("EMP_ID"), resultPlan.get(0).get("F_NAME") + " " + resultPlan.get(0).get("L_NAME"), resultPlan.get(0).get("PLHEADERTRUCK"), "");
-                    driverData.convert(new CallService().getDriver(empid, truckid));
+                    driverData.convert(call.getDriver(empid, truckid));
                     editor.putBoolean("WORK", false);
                     editor.putString("truckid", resultPlan.get(0).get("PLHEADERTRUCK"));
                     editor.putString("empid", driverData.getEMP_ID());
@@ -292,13 +295,11 @@ public class Login extends AppCompatActivity {
                 }
 
                 ArrayList<img_tms.Hashtag_TB_TMS> TbHash = ImgTms.HT_GetDateTbHashtag("TbHashtag");
-                String resultHashtag = new CallService().getHashtag(TbHash.size() <= 0 ? "000000000000" : TbHash.get(0).Server_Date);
-                ImgTms.UpsertHashtag(resultHashtag);
-                /*ArrayList<img_tms.Hashtag_TMS> Hash = ImgTms.HT_GetHashtag();
-                for (int i = 0; i < Hash.size(); ++i) {
-                    Log.d(Hash.get(i).list_id, Hash.get(i).list_name + " " + Hash.get(i).group_id);
-                }*/
+                String resultHashtag = call.getHashtag(TbHash.size() <= 0 ? "000000000000" : TbHash.get(0).Server_Date);
+                String resultWorkList = call.getWorkList(TbHash.size() <= 1 ? "000000000000" : TbHash.get(1).Server_Date);
 
+                ImgTms.UpsertWorkList(resultWorkList);
+                ImgTms.UpsertHashtag(resultHashtag);
                 return resultServiceLogin;
             } catch (Exception e) {
                 Log.d("Error doInBg", e.toString());
@@ -309,14 +310,18 @@ public class Login extends AppCompatActivity {
         @Override
         protected void onPostExecute(final String result) {
             mAuthTask = null;
-            dialog.dismiss();
-            Log.d("TEST ", "Online");
+
+            if (dialog != null) {
+                dialog.dismiss();
+            }
+
             if (result.equalsIgnoreCase(getString(R.string.result_error))) {
                 //showAlertDialog(Login.this, "การเชื่อมต่อผิดพลาด", "กรุณาลองใหม่ภายหลัง");
                 new UserOfflineTask(truckid, empid).execute();
             } else if (result.equalsIgnoreCase(getString(R.string.noresult))) {
                 showAlertDialog(Login.this, "ไม่พบข้อมูล", "กรุณาตรวจสอบ เบอร์รถ และ รหัสผนักงาน");
             } else {
+                editor.putBoolean("notification", true);
                 editor.commit();
                 startService();
                 Intent intent = new Intent(Login.this, MainActivity.class);
@@ -324,6 +329,7 @@ public class Login extends AppCompatActivity {
                 finish();
             }
         }
+
     }
 
     public void writeFile(String Json, String Type) {
@@ -388,7 +394,10 @@ public class Login extends AppCompatActivity {
             cursor = ImgTms.Img_GetActiveAndWoheader(WOHEADERDOCID);
             String fileName;
             for (int i = 0; i < cursor.size(); i++) {
-                if (cursor.get(i).Group_Type.equalsIgnoreCase(img_tms.GTYPE_OTHER)) {
+                if (cursor.get(i).Group_Type.equalsIgnoreCase(img_tms.GTYPE_OTHER) ||
+                        cursor.get(i).Group_Type.equalsIgnoreCase(img_tms.GTYPE_REQWORK) ||
+                        cursor.get(i).Group_Type.equalsIgnoreCase(img_tms.GTYPE_MAINTENANCE) ||
+                        cursor.get(i).Group_Type.equalsIgnoreCase(img_tms.GTYPE_MTNDRIVER)) {
                     Calendar today = Calendar.getInstance();
                     String strThatDay = cursor.get(i).Date_img;
                     SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -401,7 +410,6 @@ public class Login extends AppCompatActivity {
                     Calendar thatDay = Calendar.getInstance();
                     thatDay.setTime(d);
                     long diff = today.getTimeInMillis() - thatDay.getTimeInMillis();
-                    Log.d("TEST OTHER", diff + " " + diff / (60 * 1000));
                     if ((diff / (24 * 60 * 60 * 1000)) < 7) {
                         continue;
                     }

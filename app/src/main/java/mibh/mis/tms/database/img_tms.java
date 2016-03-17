@@ -41,11 +41,20 @@ public class img_tms {
     /* Image Maintenance */
     public static final String IMG_MTNCAR = "100";
     public static final String IMG_MTNASSET = "101";
-    public static final String IMG_MTNHUMAN = "102";
     public static final String IMG_MTNDRIVERREJECT = "107";
     public static final String IMG_MTNTRUCKREJECT = "108";
     public static final String IMG_MTNOTHER = "109";
 
+    /* Image MTNDriver */
+    public static final String IMG_MTNHUMAN = "102";
+    public static final String IMG_MTNDRIOTHER = "119";
+
+    /* Image ReqWork */
+    public static final String IMG_REQWORKDRIVER = "120";
+    public static final String IMG_REQWORKCHOOSE = "128";
+    public static final String IMG_REQWORKORTHER = "129";
+
+    /* Image Other */
     public static final String IMG_OTHER = "999";
 
     /* Image GroupType  */
@@ -53,6 +62,8 @@ public class img_tms {
     public static final String GTYPE_FUEL = "FUEL";
     public static final String GTYPE_STGNATURE = "SIGNATURE";
     public static final String GTYPE_MAINTENANCE = "MAINTENANCE";
+    public static final String GTYPE_MTNDRIVER = "MTNDRIVER";
+    public static final String GTYPE_REQWORK = "REQWORK";
     public static final String GTYPE_OTHER = "OTHER";
 
     public static final String ACTIVE = "ACTIVE";
@@ -64,7 +75,7 @@ public class img_tms {
 
 
         if (img_type.equalsIgnoreCase(IMG_WORK_STATION)) {
-            Dname = "สถานี";
+            Dname = "สถาที่รับ/ส่ง";
         }
         if (img_type.equalsIgnoreCase(IMG_WORK_PRODUCT)) {
             Dname = "สินค้า";
@@ -73,7 +84,7 @@ public class img_tms {
             Dname = "เอกสาร/DO";
         }
         if (img_type.equalsIgnoreCase(IMG_WORK_TRUCK)) {
-            Dname = "รถ";
+            Dname = "ระหว่างเดินทาง";
         }
         if (img_type.equalsIgnoreCase(IMG_WORK_WEIGHT)) {
             Dname = "ห้องชั่ง";
@@ -82,7 +93,7 @@ public class img_tms {
             Dname = "ล้างรถ";
         }
         if (img_type.equalsIgnoreCase(IMG_WORK_PROBLEM)) {
-            Dname = "แจ้งปัญหา";
+            Dname = "แจ้งปัญหา/อุบัติเหตุ";
         }
         if (img_type.equalsIgnoreCase(IMG_WORK_ACCIDENT)) {
             Dname = "อุบัติเหตุ";
@@ -118,6 +129,9 @@ public class img_tms {
             Dname = "พนักงาน";
         }
         if (img_type.equalsIgnoreCase(IMG_MTNOTHER)) {
+            Dname = "อื่นๆ";
+        }
+        if (img_type.equalsIgnoreCase(IMG_MTNDRIOTHER)) {
             Dname = "อื่นๆ";
         }
 
@@ -183,6 +197,18 @@ public class img_tms {
         }
     }
 
+    public static class WorkList {
+
+        public String list_id = "";
+        public String list_name = "";
+        public String value_date = "";
+        public String server_date = "";
+        public String status = "";
+
+        WorkList(){
+
+        }
+    }
 
     /****************************< Function comment >*************************/
     /** NAME		 : -			                                      	**/
@@ -307,6 +333,35 @@ public class img_tms {
         ArrayList<Image_tms> Images = new ArrayList<Image_tms>();
 
         Cursor c = DB_TMS.GetImageByGroupType(vWorkHid, vGroup_Type);
+        if (c.getCount() > 0) {
+            if (c.moveToFirst()) {
+                do {
+                    Image_tms m = new Image_tms();
+
+                    m.WorkHid = DB_TMS.GetString(c, DB_TMS.Im_WorkHid, "");
+                    m.Group_Type = DB_TMS.GetString(c, DB_TMS.Im_Group_Type, "");
+                    m.Type_img = DB_TMS.GetString(c, DB_TMS.Im_Type_img, "");
+                    m.Filename = DB_TMS.GetString(c, DB_TMS.Im_Filename, "");
+                    m.Doc_item = DB_TMS.GetString(c, DB_TMS.Im_Doc_item, "");
+                    m.Lat_img = DB_TMS.GetString(c, DB_TMS.Im_Lat_img, "");
+                    m.Lng_img = DB_TMS.GetString(c, DB_TMS.Im_Lng_img, "");
+                    m.Date_img = DB_TMS.GetString(c, DB_TMS.Im_Date_img, "");
+                    m.Stat_Upd = DB_TMS.GetString(c, DB_TMS.Im_Status_Update, "");
+                    m.Comment = DB_TMS.GetString(c, DB_TMS.Im_Comment, "");
+
+                    Images.add(m);
+
+                } while (c.moveToNext());
+            }
+        }
+        c.close();
+        return Images;
+    }
+
+    public ArrayList<Image_tms> Img_GetImageByGroupType(String vGroup_Type) {
+        ArrayList<Image_tms> Images = new ArrayList<Image_tms>();
+
+        Cursor c = DB_TMS.GetImageByGroupType(vGroup_Type);
         if (c.getCount() > 0) {
             if (c.moveToFirst()) {
                 do {
@@ -564,8 +619,8 @@ public class img_tms {
         return ArrList;
     }
 
-    public void UpsertTbHashtag(String DateServer) {
-        DB_TMS.UpsertTbHashtag("TbHashtag", DateServer);
+    public void UpsertTbHashtag(String SystemCode,String DateServer) {
+        DB_TMS.UpsertTbHashtag(SystemCode, DateServer);
     }
 
     public void UpsertHashtag(String jsonResult) {
@@ -582,10 +637,69 @@ public class img_tms {
                         c.getString("SERVERDATE"),
                         c.getString("STATUS"));
             }
-            UpsertTbHashtag(lastDateServer);
+            UpsertTbHashtag("TbHashtag",lastDateServer);
         } catch (Exception e) {
             Log.d("Convert Hashtag", e.toString());
         }
+    }
+
+    public void UpsertWorkList(String jsonResult) {
+        String lastDateServer = jsonResult.substring(0, 12);
+        String strHashtag = jsonResult.substring(12);
+        try {
+            JSONArray data = new JSONArray(strHashtag);
+            for (int i = 0; i < data.length(); i++) {
+                JSONObject c = data.getJSONObject(i);
+                DB_TMS.UpsertWorkList(c.getString("LIST_ID"),
+                        c.getString("LIST_NAME"),
+                        c.getString("VALUE_DATE"),
+                        c.getString("SERVERDATE"),
+                        c.getString("STATUS"));
+            }
+            UpsertTbHashtag("TbWorkList",lastDateServer);
+        } catch (Exception e) {
+            Log.d("Convert WorkList", e.toString());
+        }
+    }
+
+    public ArrayList<WorkList> GetAllWorkList() {
+        ArrayList<WorkList> ArrList = new ArrayList<>();
+        Cursor c = DB_TMS.GetAllWorkList();
+        if (c.getCount() > 0) {
+            if (c.moveToFirst()) {
+                do {
+                    WorkList m = new WorkList();
+                    m.list_id = DB_TMS.GetString(c, DB_TMS.wo_list_id, "");
+                    m.list_name = DB_TMS.GetString(c, DB_TMS.wo_list_name, "");
+                    m.value_date = DB_TMS.GetString(c, DB_TMS.wo_value_date, "");
+                    m.server_date = DB_TMS.GetString(c, DB_TMS.wo_serverdate, "");
+                    m.status = DB_TMS.GetString(c, DB_TMS.wo_status, "");
+                    ArrList.add(m);
+                } while (c.moveToNext());
+            }
+        }
+        c.close();
+        return ArrList;
+    }
+
+    public ArrayList<WorkList> GetActiveWorkList() {
+        ArrayList<WorkList> ArrList = new ArrayList<>();
+        Cursor c = DB_TMS.GetActiveWorkList();
+        if (c.getCount() > 0) {
+            if (c.moveToFirst()) {
+                do {
+                    WorkList m = new WorkList();
+                    m.list_id = DB_TMS.GetString(c, DB_TMS.wo_list_id, "");
+                    m.list_name = DB_TMS.GetString(c, DB_TMS.wo_list_name, "");
+                    m.value_date = DB_TMS.GetString(c, DB_TMS.wo_value_date, "");
+                    m.server_date = DB_TMS.GetString(c, DB_TMS.wo_serverdate, "");
+                    m.status = DB_TMS.GetString(c, DB_TMS.wo_status, "");
+                    ArrList.add(m);
+                } while (c.moveToNext());
+            }
+        }
+        c.close();
+        return ArrList;
     }
 
 }

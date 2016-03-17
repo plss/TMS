@@ -27,6 +27,7 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import mibh.mis.tms.Cam.CamTestActivity;
 import mibh.mis.tms.data.WorkData;
 import mibh.mis.tms.database.img_tms;
 
@@ -111,11 +112,39 @@ public class ImageList extends AppCompatActivity {
                 if (extras.containsKey("STATUS")) {
                     STATUSMTN = extras.getString("STATUS");
                 }
+            } else if (From.equals(ImgTms.GTYPE_MTNDRIVER)) {
+                arrName = getResources().getStringArray(R.array.list_mtndriver);
+                if (extras.containsKey("WOHEADER_DOCID")) {
+                    WOHEADER_DOCID = extras.getString("WOHEADER_DOCID");
+                }
+                if (extras.containsKey("DOCID")) {
+                    WOITEM_DOCID = extras.getString("DOCID");
+                }
+                if (extras.containsKey("DETAIL")) {
+                    DETAIL = extras.getString("DETAIL");
+                }
+                if (extras.containsKey("STATUS")) {
+                    STATUSMTN = extras.getString("STATUS");
+                }
+            } else if (From.equals(ImgTms.GTYPE_REQWORK)) {
+                arrName = getResources().getStringArray(R.array.list_reqwork);
+                if (extras.containsKey("WOHEADER_DOCID")) {
+                    WOHEADER_DOCID = extras.getString("WOHEADER_DOCID");
+                }
+                if (extras.containsKey("DOCID")) {
+                    WOITEM_DOCID = extras.getString("DOCID");
+                }
+                if (extras.containsKey("DETAIL")) {
+                    DETAIL = extras.getString("DETAIL");
+                }
+                if (extras.containsKey("STATUS")) {
+                    STATUSMTN = extras.getString("STATUS");
+                }
             }
+
         }
 
         mCheckStates = new SparseBooleanArray(arrName.length);
-        //Log.d("TEST List", WOHEADER_DOCID + " " + From + " " + WOITEM_DOCID + " " + DETAIL + " " + STATUSMTN);
         ArrayList<img_tms.Image_tms> cursor = ImgTms.Img_GetImageByDoc_itemAndGroupType(WOHEADER_DOCID, From, WOITEM_DOCID);
         for (int i = 0; i < cursor.size(); i++) {
             if (From.equals(ImgTms.GTYPE_WORK)) {
@@ -130,9 +159,18 @@ public class ImageList extends AppCompatActivity {
                 int x = Integer.parseInt(cursor.get(i).Type_img);
                 if (x == 109) mCheckStates.put(arrName.length - 1, true);
                 else mCheckStates.put(x - 100, true);
+            } else if (From.equals(ImgTms.GTYPE_MTNDRIVER)) {
+                int x = Integer.parseInt(cursor.get(i).Type_img);
+                if (x == 102) mCheckStates.put(0, true);
+                else if (x == 119) mCheckStates.put(arrName.length - 1, true);
+                else mCheckStates.put(x - 100, true);
             } else if (From.equals(ImgTms.GTYPE_STGNATURE)) {
                 int x = Integer.parseInt(cursor.get(i).Type_img);
                 mCheckStates.put(x - 50, true);
+            }else if (From.equals(ImgTms.GTYPE_REQWORK)) {
+                int x = Integer.parseInt(cursor.get(i).Type_img);
+                if (x == 129) mCheckStates.put(arrName.length - 1, true);
+                else mCheckStates.put(x - 120, true);
             }
         }
         ImgTms.close();
@@ -200,8 +238,20 @@ public class ImageList extends AppCompatActivity {
                         if (position == arrName.length - 1) {
                             intent.putExtra("Type_Img", "109");
                         } else intent.putExtra("Type_Img", String.valueOf(100 + position));
+                    } else if (From.equals(ImgTms.GTYPE_MTNDRIVER)) {
+                        if (position == 0) {
+                            intent.putExtra("Type_Img", "102");
+                        } else if (position == arrName.length - 1) {
+                            intent.putExtra("Type_Img", "119");
+                        } else intent.putExtra("Type_Img", String.valueOf(110 + position));
                     } else if (From.equals(ImgTms.GTYPE_STGNATURE)) {
                         intent.putExtra("Type_Img", String.valueOf(50 + position));
+                    } else if (From.equals(ImgTms.GTYPE_REQWORK)){
+                        if (position == arrName.length - 1) {
+                            intent.putExtra("Type_Img", "129");
+                        } else {
+                            intent.putExtra("Type_Img", String.valueOf(120 + position));
+                        }
                     }
                     startActivity(intent);
                 }
@@ -222,8 +272,20 @@ public class ImageList extends AppCompatActivity {
                         if (position == arrName.length - 1) {
                             docIndex = "109";
                         } else docIndex = String.valueOf(100 + position);
+                    } else if (From.equals(ImgTms.GTYPE_MTNDRIVER)) {
+                        if (position == 0) {
+                            docIndex = "102";
+                        } else if (position == arrName.length - 1) {
+                            docIndex = "119";
+                        } else docIndex = String.valueOf(110 + position);
                     } else if (From.equals(ImgTms.GTYPE_STGNATURE)) {
                         docIndex = String.valueOf(50 + position);
+                    } else if (From.equals(ImgTms.GTYPE_REQWORK)) {
+                        if (position == arrName.length - 1) {
+                            docIndex = "129";
+                        } else {
+                            docIndex = String.valueOf(120 + position);
+                        }
                     }
 
                     if (sp.getString("latitude", "0").equalsIgnoreCase("0") || sp.getString("longtitude", "0").equalsIgnoreCase("0")
@@ -273,7 +335,7 @@ public class ImageList extends AppCompatActivity {
                                             @Override
                                             public void onClick(DialogInterface dialog, int which) {
                                                 String strName = arrayAdapter.getItem(which);
-                                                Intent intent = new Intent(ImageList.this, CameraMain.class);
+                                                Intent intent = new Intent(ImageList.this, CamTestActivity.class);
                                                 intent.putExtra("From", From);
                                                 intent.putExtra("WOHEADER_DOCID", WOHEADER_DOCID);
                                                 intent.putExtra("ITEM", WOITEM_DOCID);
@@ -297,7 +359,7 @@ public class ImageList extends AppCompatActivity {
                                         });
                                 builderSingle.show();
                             } else {
-                                Intent intent = new Intent(ImageList.this, CameraMain.class);
+                                Intent intent = new Intent(ImageList.this, CamTestActivity.class);
                                 intent.putExtra("From", From);
                                 intent.putExtra("WOHEADER_DOCID", WOHEADER_DOCID);
                                 intent.putExtra("ITEM", WOITEM_DOCID);
@@ -312,7 +374,7 @@ public class ImageList extends AppCompatActivity {
                             }
 
                         } else if (From.equals(ImgTms.GTYPE_FUEL)) {
-                            Intent intent = new Intent(ImageList.this, CameraMain.class);
+                            Intent intent = new Intent(ImageList.this, CamTestActivity.class);
                             intent.putExtra("From", From);
                             intent.putExtra("WOHEADER_DOCID", WOHEADER_DOCID);
                             intent.putExtra("ITEM", WOITEM_DOCID);
@@ -323,7 +385,17 @@ public class ImageList extends AppCompatActivity {
                             intent.putExtra("STATUS", "");
                             ImageList.this.startActivityForResult(intent, position);
                         } else if (From.equals(ImgTms.GTYPE_MAINTENANCE)) {
-                            Intent intent = new Intent(ImageList.this, CameraMain.class);
+                            Intent intent = new Intent(ImageList.this, CamTestActivity.class);
+                            intent.putExtra("From", From);
+                            intent.putExtra("WOHEADER_DOCID", WOHEADER_DOCID);
+                            intent.putExtra("ITEM", WOITEM_DOCID);
+                            intent.putExtra("MODE", ImgTms.Doc_name(docIndex));
+                            intent.putExtra("DETAIL", DETAIL);
+                            intent.putExtra("Type_Img", docIndex);
+                            intent.putExtra("STATUS", STATUSMTN);
+                            ImageList.this.startActivityForResult(intent, position);
+                        } else if (From.equals(ImgTms.GTYPE_MTNDRIVER) || From.equals(ImgTms.GTYPE_REQWORK)) {
+                            Intent intent = new Intent(ImageList.this, CamTestActivity.class);
                             intent.putExtra("From", From);
                             intent.putExtra("WOHEADER_DOCID", WOHEADER_DOCID);
                             intent.putExtra("ITEM", WOITEM_DOCID);

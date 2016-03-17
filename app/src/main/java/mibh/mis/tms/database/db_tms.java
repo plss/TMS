@@ -21,7 +21,8 @@ public class db_tms extends SQLiteOpenHelper {
     static final String Tb_Img = "IMG_TMSMOBILE";
     static final String Tb_Hashtag = "HASHTAG";
     static final String Tb_HashtagValue = "HASHTAG_VALUE";
-    static final int versionnew = 3;
+    static final String Tb_WorkList = "WORKLIST";
+    static final int versionnew = 4;
     static int versionold;
 
     /* field name for IMAGE_TBL */
@@ -48,6 +49,12 @@ public class db_tms extends SQLiteOpenHelper {
     static final String htv_server_date = "SERVERDATE";
     static final String htv_status = "STATUS";
 
+    /* field name for WORKLIST */
+    static final String wo_list_id = "LIST_ID";
+    static final String wo_list_name = "LIST_NAME";
+    static final String wo_value_date = "VALUE_DATE";
+    static final String wo_serverdate = "SERVERDATE";
+    static final String wo_status = "STATUS";
 
     /****************************< Function comment >*************************/
     /** NAME		 : -			                                      	**/
@@ -114,6 +121,12 @@ public class db_tms extends SQLiteOpenHelper {
                 + htv_server_date + " TEXT ,"
                 + htv_status + " TEXT )");
 
+        db.execSQL("CREATE TABLE " + Tb_WorkList + " (" + wo_list_id + " TEXT ,"
+                + wo_list_name + " TEXT ,"
+                + wo_value_date + " TEXT ,"
+                + wo_serverdate + " TEXT ,"
+                + wo_status + " TEXT )");
+
         Log.d("march", "create Db");
 
     }
@@ -149,6 +162,13 @@ public class db_tms extends SQLiteOpenHelper {
                     + htv_server_date + " TEXT ,"
                     + htv_status + " TEXT )");
             Log.d("march", "create Db2");
+        }
+        if(oldVersion < 4) {
+            db.execSQL("CREATE TABLE " + Tb_WorkList + " (" + wo_list_id + " TEXT ,"
+                    + wo_list_name + " TEXT ,"
+                    + wo_value_date + " TEXT ,"
+                    + wo_serverdate + " TEXT ,"
+                    + wo_status + " TEXT )");
         }
 
 //		 db.execSQL("CREATE TABLE IF NOT EXISTS "+ this.Tb_Station +" ("
@@ -382,6 +402,12 @@ public class db_tms extends SQLiteOpenHelper {
         return cur;
     }
 
+    Cursor GetImageByGroupType(String vGroup_Type) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        Cursor cur = db.rawQuery("Select * from " + this.Tb_Img + " WHERE " + this.Im_Group_Type + " ='" + vGroup_Type + "' ORDER BY " + this.Im_Date_img + " DESC", null);
+        return cur;
+    }
+
     /****************************< Function comment >*************************/
     /** NAME		 : -			                                      	**/
     /** PARAMETERS	 : none		                                           	**/
@@ -457,7 +483,7 @@ public class db_tms extends SQLiteOpenHelper {
         Cursor cur = db.rawQuery("Select * from " + this.Tb_Img + " WHERE " + this.Im_WorkHid + " = '" + vWorkHid + "' and " +
                 this.Im_Group_Type + " ='" + vGroup_Type + "' and " +
                 this.Im_Doc_item + " ='" + vDoc_item + "' and " +
-                this.Im_Type_img + " ='" + vImg_Type + "' ", null);
+                this.Im_Type_img + " ='" + vImg_Type + "' ORDER BY " + this.Im_Date_img + " DESC", null);
         return cur;
     }
 
@@ -559,7 +585,7 @@ public class db_tms extends SQLiteOpenHelper {
 
     Cursor GetHashtagByGtypeAndImgType(String vGroup_Type, String vImg_Type) {
         SQLiteDatabase db = this.getWritableDatabase();
-            Cursor cur = db.rawQuery("Select * from " + Tb_HashtagValue + " WHERE " + htv_status + " = 'Active' and "
+        Cursor cur = db.rawQuery("Select * from " + Tb_HashtagValue + " WHERE " + htv_status + " = 'Active' and "
                 + htv_group_id + " ='" + vGroup_Type + "' and "
                 + htv_type_id + " ='" + vImg_Type + "' ORDER BY " + htv_list_name + " ASC", null);
         return cur;
@@ -572,4 +598,38 @@ public class db_tms extends SQLiteOpenHelper {
         return cur;
     }
 
+    Cursor GetAllWorkList() {
+        SQLiteDatabase db = this.getWritableDatabase();
+        Cursor cur = db.rawQuery("Select * from " + Tb_WorkList + " ", null);
+        return cur;
+    }
+
+    Cursor GetActiveWorkList() {
+        SQLiteDatabase db = this.getWritableDatabase();
+        Cursor cur = db.rawQuery("Select * from " + Tb_WorkList + " WHERE " + wo_status + " = 'Active' ", null);
+        return cur;
+    }
+
+    public long UpsertWorkList(String LIST_ID, String LIST_NAME, String VALUE_DATE, String SERVER_DATE, String STATUS) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues cv = new ContentValues();
+        cv.put(wo_list_name, LIST_NAME);
+        cv.put(wo_value_date, VALUE_DATE);
+        cv.put(wo_serverdate, SERVER_DATE);
+        cv.put(wo_status, STATUS);
+        String where = wo_list_id + "=?";
+        String[] whereArgs = new String[]{LIST_ID};
+        long i = db.update(Tb_WorkList, cv, where, whereArgs);
+        if (i == 0) {
+            ContentValues cv2 = new ContentValues();
+            cv2.put(wo_list_id, LIST_ID);
+            cv2.put(wo_list_name, LIST_NAME);
+            cv2.put(wo_value_date, VALUE_DATE);
+            cv2.put(wo_serverdate, SERVER_DATE);
+            cv2.put(wo_status, STATUS);
+            i = db.insert(Tb_WorkList, null, cv2);
+        }
+        db.close();
+        return i;
+    }
 }

@@ -27,7 +27,10 @@ import android.view.MenuInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.google.zxing.BarcodeFormat;
@@ -42,6 +45,7 @@ import mibh.mis.tms.data.WorkData;
 import mibh.mis.tms.database.img_tms;
 import mibh.mis.tms.qrcode.Content;
 import mibh.mis.tms.qrcode.QRCodeEncoder;
+import mibh.mis.tms.service.CallService;
 import mibh.mis.tms.service.FileDownloader;
 
 public class WorkList extends Fragment {
@@ -51,6 +55,7 @@ public class WorkList extends Fragment {
     RecyclerView mainRecyclerView;
     CardView listItem;
     View rootView;
+    RelativeLayout closeWork;
     private ArrayList<HashMap<String, String>> data = new ArrayList<>();
     public Dialog dialog;
     private TextView WOHEADER_OPEN, COMPANY_NAME, SOURCE_NAME, DEST_NAME, DISTANCE_PLAN, TRUCK_LICENSE, TRUCK_LICENSE_PROVINCE, TAIL_LICENSE, TAIL_LICENSE_PROVINCE, PRO_NAME, CUSTOMER_NAME, detailwoitem, WOHEADER_DOCID, remark;
@@ -66,6 +71,7 @@ public class WorkList extends Fragment {
         rootView = inflater.inflate(R.layout.work_list, container, false);
 
         mainRecyclerView = (RecyclerView) rootView.findViewById(R.id.recyclerview);
+        closeWork = (RelativeLayout) rootView.findViewById(R.id.closeWork);
         listItem = (CardView) rootView.findViewById(R.id.cardlist_item);
         recyclerView = (RecyclerView) rootView.findViewById(R.id.home_recyclerview);
         recyclerView.setHasFixedSize(true);
@@ -78,7 +84,6 @@ public class WorkList extends Fragment {
         if (data.size() >= 0) {
             cursor = ImgTms.Img_GetImageByGroupType(data.get(0).get("WOHEADER_DOCID"), ImgTms.GTYPE_WORK);
             for (int i = 0; i < cursor.size(); i++) {
-                Log.d("Work ", cursor.get(i).Doc_item + " " + i + " " + cursor.get(i).Comment);
                 mCheckStates.put(cursor.get(i).Doc_item, true);
             }
         }
@@ -89,6 +94,13 @@ public class WorkList extends Fragment {
         } else {
             adapter.notifyDataSetChanged();
         }
+
+        closeWork.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showDialog();
+            }
+        });
 
         return rootView;
     }
@@ -223,6 +235,7 @@ public class WorkList extends Fragment {
         }
 
         public void showDialogDetail(int position) {
+            //Log.d("TEST", "showDialogDetail: " + data.get(position).get("PLANSTARTSOURCE"));
             detailwoitem.setText("รายละเอียด " + (position + 1) + "/" + data.size());
             String DT[] = data.get(position).get("WOHEADER_OPEN").split("T");
             WOHEADER_OPEN.setText(DT[0] + " / " + DT[1].substring(0, 5));
@@ -243,11 +256,6 @@ public class WorkList extends Fragment {
             CUSTOMER_NAME.setText(data.get(position).get("CUSTOMER_NAME"));
             url = data.get(position).get("DOCITEM_URL");
             fileUrl = url.substring(40);
-            /*print.setOnClickListener(new View.OnClickListener() {
-                public void onClick(View view) {
-                    new DownloadFile().execute(url, fileUrl);
-                }
-            });*/
             ImageView close = (ImageView) dialog.findViewById(R.id.close);
             dialog.show();
             close.setOnClickListener(new View.OnClickListener() {
@@ -446,7 +454,7 @@ public class WorkList extends Fragment {
                                     }
                                 }
                             } else if (pointerIndex >= 3) {
-		    				/* Reset position and scale */
+                            /* Reset position and scale */
                                 view.setScaleX(1);
                                 view.setScaleY(1);
                                 view.setTranslationX(0);
@@ -467,7 +475,7 @@ public class WorkList extends Fragment {
                         break;
 
                     case MotionEvent.ACTION_UP:
-	    			/* Calculate new offset */
+                    /* Calculate new offset */
                         ScreenOfsPos[0] = CurrentOfsPos[0] - (CurrentOfsPos[0] * CurrentScale) + TranslateOfsPos[0];
                         ScreenOfsPos[1] = CurrentOfsPos[1] - (CurrentOfsPos[1] * CurrentScale) + TranslateOfsPos[1];
                         TouchOfsWidth = 0;
@@ -478,6 +486,76 @@ public class WorkList extends Fragment {
             }
         };
 
+    }
+
+    public void showDialog() {
+        AlertDialog.Builder alert = new AlertDialog.Builder(getActivity());
+        //alert.setTitle("กรุณาใส่เหตุผล");
+        View view = getActivity().getLayoutInflater().inflate(R.layout.dialog_checkbox, null);
+        CheckBox cb = (CheckBox) view.findViewById(R.id.cbInDialog);
+        alert.setView(view);
+        alert.setPositiveButton("ตกลง", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                dialog.dismiss();
+                new loadData().execute();
+            }
+        });
+        final AlertDialog alert2 = alert.create();
+        alert2.show();
+        ((AlertDialog) alert2).getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
+        cb.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    ((AlertDialog) alert2).getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true);
+                } else {
+                    ((AlertDialog) alert2).getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
+                }
+            }
+        });
+    }
+
+    private class loadData extends AsyncTask<String, String, String> {
+
+        ProgressDialog progressDialog = new ProgressDialog(getActivity());
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            progressDialog.setMessage("กรุณารอสักครู่");
+            progressDialog.show();
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            super.onPostExecute(s);
+            Log.d("TEST", s);
+            if (progressDialog != null) {
+                progressDialog.dismiss();
+            }
+            if (s.equalsIgnoreCase("true")) {
+                new MainActivity.RefreshTask(sp.getString("truckid", ""), sp.getString("empid", ""), getActivity()).execute();
+            } else {
+                String[] str = s.split("|");
+                AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(getActivity());
+                alertDialogBuilder.setMessage("ผิดพลาด " + str[1] + " \nกรุณาลองใหม่อีกครั้ง");
+                alertDialogBuilder.setNegativeButton("ตกลง",
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                            }
+                        });
+                AlertDialog alertDialog = alertDialogBuilder.create();
+                alertDialog.show();
+            }
+
+        }
+
+        @Override
+        protected String doInBackground(String... params) {
+            return new CallService().Save_closeWork(data.get(0).get("WOHEADER_DOCID"));
+        }
     }
 
 }

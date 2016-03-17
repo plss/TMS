@@ -87,6 +87,7 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
     static final int FOCUS_AREA_SIZE = 300;
     int camRear = Camera.CameraInfo.CAMERA_FACING_BACK, camFront = Camera.CameraInfo.CAMERA_FACING_FRONT, currentCam, rotat, firstCapRotate = 90, capCount = 0;
     String flashOn = Camera.Parameters.FLASH_MODE_ON, flashOff = Camera.Parameters.FLASH_MODE_OFF, currentFlash = flashOff;
+    boolean stateCamera = true;
     RecyclerView recyclerView;
     AlertDialog dialogList2;
     AutoCompleteTextView input;
@@ -137,6 +138,8 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
             TYPE_IMG = extras.getString("Type_Img");
         }
 
+        Log.d("TEST DATA", WOHEADER_DOCID2 + " " + modeName + " " + stat + " " + DETAIL + " " + from + " " + ITEM + " " + TYPE_IMG);
+
         imgTms = new img_tms(CameraMain.this);
 
         fileName = imgTms.Gen_imgName(sp.getString("truckid", ""), from);
@@ -147,7 +150,10 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
         captBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                capture();
+                if (stateCamera) {
+                    stateCamera = false;
+                    capture();
+                }
             }
         });
 
@@ -386,6 +392,7 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
         closeCamera();
         //mCamera.release();
         mSensorManager.unregisterListener(this, mAccelerometer);
+        if (dialog != null) dialog.dismiss();
         if (bmpFront != null) {
             bmpFront.recycle();
             System.gc();
@@ -394,6 +401,15 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
             bmpRear.recycle();
             System.gc();
         }
+        if (bmp != null) {
+            bmp.recycle();
+            System.gc();
+        }
+        System.gc();
+        Intent intent = new Intent();
+        intent.putExtra("fileName", fileName);
+        setResult(RESULT_CANCELED, intent);
+        CameraMain.this.finish();
     }
 
     public void onAccuracyChanged(Sensor arg0, int arg1) {
@@ -428,7 +444,7 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
         try {
             int disp_width = 0;
             int disp_height = 0;
-            FrameLayout CameraLayout = (FrameLayout) findViewById(R.id.CameraLayout);
+            FrameLayout CameraLayout = (FrameLayout) findViewById(R.id.frameCam);
 
             if (CameraLayout != null) {
                 disp_width = CameraLayout.getWidth();
@@ -457,15 +473,30 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
 
             mp.width = CamViewW;
             mp.height = CamViewH;
-            pm.setJpegQuality(100);
-            pm.setPictureSize(640, 480);
-            //Log.d("Picture size Rear", pm.getPictureSize().width + " " + pm.getPictureSize().height);
+
+            List<Camera.Size> pictureSize = pm.getSupportedPictureSizes();
+            int maxHeight = 0, maxIndex = 0;
+            for (int i = 0; i < pictureSize.size(); ++i) {
+                if (pictureSize.get(i).height > maxHeight) {
+                    maxHeight = pictureSize.get(i).height;
+                    maxIndex = i;
+                }
+            }
+            if (maxHeight < 1200) {
+                pm.setJpegQuality(100);
+                pm.setPictureSize(pictureSize.get(maxIndex).width, pictureSize.get(maxIndex).height);
+            } else {
+                pm.setJpegQuality(100);
+                pm.setPictureSize(1600, 1200);
+            }
+
             pm.setFlashMode(currentFlash);
             mCamera.setParameters(pm);
             mPreview.setLayoutParams(mp);
             mCamera.setPreviewDisplay(mPreview.getHolder());
             mCamera.startPreview();
         } catch (IOException e) { /*e.printStackTrace();*/ }
+
     }
 
     public void surfaceCreated(SurfaceHolder arg0) {
@@ -494,40 +525,34 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
                 System.gc();
                 capCount++;
                 if (capCount == 1) {
-                    bmpRear = captureRear(data);
+                    bmpRear = BitmapFactory.decodeByteArray(data, 0, data.length);
                     bmpRear = RotateBitmap(bmpRear, rotat, (float) 1);
                     firstCapRotate = rotat;
                     System.gc();
                     flipcamera();
                 } else if (capCount == 2) {
-                    bmpFront = captureFront(data);
-                    bmpFront = RotateBitmap(bmpFront, rotat, (float) 1);
+                    bmpFront = BitmapFactory.decodeByteArray(data, 0, data.length);
+                    bmpFront = RotateBitmap(bmpFront, rotat, (float) 0.5);
                     System.gc();
                     showPreview();
                 }
-                /*if (currentCam == camRear) {
-
-                } else if (currentCam == camFront) {
-
-                }*/
 
             }
         };
     }
 
     private void showPreview() {
-        System.gc();
-        bmp = DrawBitmapborder(bmpRear);
+        DrawBitmapborder(bmpRear);
         bmpRear.recycle();
-        int x = bmp.getByteCount();
-        Log.d("Size2", bmp.getByteCount() + "");
-        if (x > 10000000) {
+        //int x = bmp.getByteCount();
+        //Log.d("Size2", bmp.getByteCount() + "");
+        /*if (x > 10000000) {
             bmp = RotateBitmap(bmp, 0, (float) (0.2));
         } else if (x > 4000000 && x <= 10000000) {
             bmp = RotateBitmap(bmp, 0, (float) (4000000.0 / x));
-        }
+        }*/
         //else bmp = RotateBitmap(bmp, 0, (float) 1);
-        Log.d("Size3", bmp.getByteCount() + "");
+        //Log.d("Size3", bmp.getByteCount() + "");
         dialog = new Dialog(CameraMain.this);
         dialog.requestWindowFeature(dialog.getWindow().FEATURE_NO_TITLE);
         dialog.setContentView(R.layout.camera_preview);
@@ -539,12 +564,11 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
         yes.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+
                 int imageNum = 0;
                 Intent imageIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
                 File imagesFolder = new File(Environment.getExternalStorageDirectory(), "DCIM/TMS");
                 imagesFolder.mkdirs();
-                //String fileName = "IMG_" + String.valueOf(imageNum) + ".jpg";
-
                 File output = new File(imagesFolder, fileName);
                 Log.i("PATH", output.toString());
                 while (output.exists()) {
@@ -577,19 +601,27 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
 
                 try {
                     os = getContentResolver().openOutputStream(uri);
-                    bmp.compress(Bitmap.CompressFormat.JPEG, 100, os);
+                    bmp.compress(Bitmap.CompressFormat.JPEG, 35, os);
                     os.flush();
                     os.close();
                 } catch (Exception e) {
                     Log.d("", e.toString());
                 }
+
                 //closeCamera();
                 imgTms.SaveImg(WOHEADER_DOCID2, from, TYPE_IMG, fileName, ITEM, sp.getString("latitude", "0"), sp.getString("longtitude", "0"), comment);
                 new Loading().execute();
                 if (dialog != null) dialog.dismiss();
-                imgTms.close();
-                bmpFront.recycle();
-                bmpRear.recycle();
+                if (bmpFront != null) {
+                    bmpFront.recycle();
+                }
+                if (bmpRear != null) {
+                    bmpRear.recycle();
+                }
+                if (bmp != null) {
+                    bmp.recycle();
+                }
+                stateCamera = true;
                 System.gc();
                 Intent intent = new Intent();
                 intent.putExtra("fileName", fileName);
@@ -603,24 +635,22 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
                 if (dialog != null) dialog.dismiss();
                 capCount = 0;
                 //RefreshOpenCamera();
-                bmpFront.recycle();
-                bmpRear.recycle();
+                if (bmpFront != null) {
+                    bmpFront.recycle();
+                }
+                if (bmpRear != null) {
+                    bmpRear.recycle();
+                }
+                if (bmp != null) {
+                    bmp.recycle();
+                }
                 System.gc();
+                stateCamera = true;
                 switchCamera();
             }
         });
+
         dialog.show();
-    }
-
-    private Bitmap captureFront(byte[] data) {
-        Bitmap bm = BitmapFactory.decodeByteArray(data, 0, data.length);
-        return bm;
-    }
-
-    private Bitmap captureRear(byte[] data) {
-        Bitmap bm = BitmapFactory.decodeByteArray(data, 0, data.length);
-
-        return bm;
     }
 
     private void capture() {
@@ -665,7 +695,7 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
             try {
                 int disp_width = 0;
                 int disp_height = 0;
-                FrameLayout CameraLayout = (FrameLayout) findViewById(R.id.CameraLayout);
+                FrameLayout CameraLayout = (FrameLayout) findViewById(R.id.frameCam);
 
                 if (CameraLayout != null) {
                     disp_width = CameraLayout.getWidth();
@@ -743,7 +773,7 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
             try {
                 int disp_width = 0;
                 int disp_height = 0;
-                FrameLayout CameraLayout = (FrameLayout) findViewById(R.id.CameraLayout);
+                FrameLayout CameraLayout = (FrameLayout) findViewById(R.id.frameCam);
 
                 if (CameraLayout != null) {
                     disp_width = CameraLayout.getWidth();
@@ -768,9 +798,23 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
                 mp.width = CamViewW;
                 mp.height = CamViewH;
                 List<Camera.Size> pictureSize = pm.getSupportedPictureSizes();
-                pm.setJpegQuality(100);
+                int maxHeight = 0, maxIndex = 0;
+                for (int i = 0; i < pictureSize.size(); ++i) {
+                    if (pictureSize.get(i).height > maxHeight) {
+                        maxHeight = pictureSize.get(i).height;
+                        maxIndex = i;
+                    }
+                }
+                if (maxHeight < 1200) {
+                    pm.setJpegQuality(100);
+                    pm.setPictureSize(pictureSize.get(maxIndex).width, pictureSize.get(maxIndex).height);
+                } else {
+                    pm.setJpegQuality(100);
+                    pm.setPictureSize(1600, 1200);
+                }
+
                 //pm.setPictureSize(pm.getPictureSize().width, pm.getPictureSize().height);
-                pm.setPictureSize(640, 480);
+
                 pm.setFlashMode(currentFlash);
                 mCamera.setParameters(pm);
                 mPreview.setLayoutParams(mp);
@@ -782,7 +826,7 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
         }
     }
 
-    public static Bitmap RotateBitmap(Bitmap source, float angle, float rescale) {
+    public Bitmap RotateBitmap(Bitmap source, float angle, float rescale) {
         int width = source.getWidth();
         int height = source.getHeight();
         float scaleWidth = (float) .4;
@@ -790,25 +834,20 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
         scaleWidth = rescale;
         scaleHeight = rescale;
         System.gc();
-
-		    /* CREATE A MATRIX FOR THE MANIPULATION */
         Matrix matrix = new Matrix();
-
-		    /* RESIZE THE BIT MAP */
         matrix.postScale(scaleWidth, scaleHeight);
         if (angle != 0) {
             matrix.postRotate(angle);
         }
-            /* "RECREATE" THE NEW BITMAP */
         return Bitmap.createBitmap(source, 0, 0, width, height, matrix, false);
     }
 
-    private Bitmap DrawBitmapborder(Bitmap src) {
+    private void DrawBitmapborder(Bitmap src) {
 
         System.gc();
-        Bitmap workingBitmap = Bitmap.createBitmap(src);
-        Bitmap mutableBitmap = workingBitmap.copy(Bitmap.Config.ARGB_8888, true);  // Bitmap.createBitmap(workingBitmap);
-
+        //Bitmap workingBitmap = Bitmap.createBitmap(src);
+        Bitmap mutableBitmap = src.copy(Bitmap.Config.ARGB_8888, true);  // Bitmap.createBitmap(workingBitmap);
+        src.recycle();
         Canvas canvas = new Canvas(mutableBitmap);
 
         Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -822,7 +861,7 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
         int w = mutableBitmap.getWidth();
         int h = mutableBitmap.getHeight();
 
-        workingBitmap.recycle();
+        // workingBitmap.recycle();
 
         Calendar c = Calendar.getInstance();
         SimpleDateFormat date = new SimpleDateFormat("dd/MM/yyyy", Locale.US);
@@ -830,7 +869,7 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
         SimpleDateFormat time = new SimpleDateFormat("HH:mm", Locale.US);
         String formattedTime = time.format(c.getTime());
 
-        int globalOffsetR = (int) (w * 0.98);
+        int globalOffsetR = (int) (w * 0.965);
         int globalOffsetL = (int) (w * 0.02);
 
         Paint paintPic = new Paint(Paint.FILTER_BITMAP_FLAG);
@@ -847,7 +886,7 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
         paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.NORMAL));
         paint.setColor(clr);
         paint.setTextSize((int) (rh * 0.04));
-        paint.setShadowLayer((float) 0.02, 1, 1, Color.BLACK);
+        paint.setShadowLayer((float) 3, 2, 2, Color.BLACK);
         canvas.drawText(formattedDate, globalOffsetR, (int) (rh * 0.06), paint);
 
         paint.setTextSize((int) (rh * 0.04));
@@ -935,28 +974,39 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
         /* Paint edge */
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth((int) (rh * 0.02));
-        paint.setShadowLayer((float) 0.00, 0, 0, Color.BLACK);
         paint.setColor(Color.WHITE);
+        paint.setShadowLayer((float) 5, 2, 2, 0xFF000000);
+        canvas.drawRect(0, 0, w, h, paint);
+        paint.setShadowLayer((float) 5, -2, -2, 0xFF000000);
         canvas.drawRect(0, 0, w, h, paint);
 
         System.gc();
-        return mutableBitmap;
+        bmp = mutableBitmap;
+        //mutableBitmap.recycle();
     }
 
-    private class Loading extends AsyncTask {
+    private class Loading extends AsyncTask<Void, Void, Void> {
+
         @Override
-        protected Object doInBackground(Object[] params) {
+        protected Void doInBackground(Void... params) {
+
             String loName;
             if (sp.getString("locationname", "").length() > 200) {
                 loName = sp.getString("locationname", "").substring(0, 198);
             } else loName = sp.getString("locationname", "");
-            Log.d("test DoInbackGround", comment);
             if (comment.length() >= 296) {
                 comment = comment.substring(0, 295) + "..";
             }
             String result = new CallService().setState(WOHEADER_DOCID2, ITEM, sp.getString("truckid", ""), String.format("%.5f,%.5f", Double.parseDouble(sp.getString("latitude", "0")), Double.parseDouble(sp.getString("longtitude", "0"))), loName, from, TYPE_IMG, sp.getString("empid", ""), sp.getString("firstname", "") + " " + sp.getString("lastname", ""), fileName, comment);
             Log.d("Result savestate", result);
+
+            imgTms.close();
+            /*bmp.recycle();
+            bmpFront.recycle();
+            bmpRear.recycle();*/
+            System.gc();
             return null;
+
         }
     }
 
@@ -1025,5 +1075,7 @@ public class CameraMain extends AppCompatActivity implements SurfaceHolder.Callb
 
         return true;
     }
+
+
 
 }

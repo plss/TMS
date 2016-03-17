@@ -48,19 +48,19 @@ import mibh.mis.tms.service.validateLatLng;
 public class Maintenance extends Fragment {
 
     View rootView;
-    RelativeLayout readyTruckBtn, readyDriverBtn, rdyTruckCam, rdyDriverCam;
-    TextView readyTruckTxt, readyDriverTxt, txtMtnTruck, txtMtnName, txtResultLoading;
+    RelativeLayout readyTruckBtn, readyDriverBtn, rdyTruckCam, rdyDriverCam, reqWorkBtn, reqWorkCam;
+    TextView readyTruckTxt, readyDriverTxt, reqWorkTxt, txtMtnTruck, txtMtnName, reqWorkName, txtResultLoading;
     img_tms ImgTms;
     SharedPreferences sp;
     SharedPreferences.Editor editor;
     LastworkData lastWork;
     LinearLayout mtnContent;
     ProgressBar loadingProgress;
-    final String[] strStatus = {"AVAILABLE", "NOTAVAILABLE"};
+    final String[] strStatus = {"AVAILABLE", "NOTAVAILABLE", "NONE"};
+    String[] valDate;
     AutoCompleteTextView input;
     AlertDialog dialogList2;
-    String comment = "";
-
+    String comment = "", truckId = "", strReqWork = "";
 
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         rootView = inflater.inflate(R.layout.maintenance, container, false);
@@ -70,27 +70,27 @@ public class Maintenance extends Fragment {
 
         readyTruckBtn = (RelativeLayout) rootView.findViewById(R.id.readyCarBtn);
         readyDriverBtn = (RelativeLayout) rootView.findViewById(R.id.readyHumanBtn);
+        reqWorkBtn = (RelativeLayout) rootView.findViewById(R.id.reqWorkBtn);
         rdyTruckCam = (RelativeLayout) rootView.findViewById(R.id.rdyCarCam);
         rdyDriverCam = (RelativeLayout) rootView.findViewById(R.id.rdyHumanCam);
+        reqWorkCam = (RelativeLayout) rootView.findViewById(R.id.reqWorkCam);
         readyTruckTxt = (TextView) rootView.findViewById(R.id.readyCarTxt);
         readyDriverTxt = (TextView) rootView.findViewById(R.id.readyHumanTxt);
+        reqWorkTxt = (TextView) rootView.findViewById(R.id.reqWorkTxt);
         txtMtnTruck = (TextView) rootView.findViewById(R.id.txtMtnTruck);
         txtMtnName = (TextView) rootView.findViewById(R.id.txtMtnName);
+        reqWorkName = (TextView) rootView.findViewById(R.id.reqWorkName);
         mtnContent = (LinearLayout) rootView.findViewById(R.id.mtnContent);
         loadingProgress = (ProgressBar) rootView.findViewById(R.id.loadingProgress);
         txtResultLoading = (TextView) rootView.findViewById(R.id.txtResultLoading);
 
+        truckId = sp.getString("truckid", "");
         txtMtnName.setText(sp.getString("firstname", "") + " " + sp.getString("lastname", ""));
-        txtMtnTruck.setText("เบอร์รถ : " + sp.getString("truckid", ""));
+        txtMtnTruck.setText("เบอร์รถ : " + truckId);
 
         lastWork = new LastworkData();
 
-        if (Calendar.getInstance().getTimeInMillis() / (24 * 60 * 60 * 1000) != sp.getLong("lastcheckstatus", 0) / (24 * 60 * 60 * 1000)) {
-            editor = sp.edit();
-            editor.putString("statuscheckdriver", "");
-            editor.putString("statuschecktruck", "");
-            editor.apply();
-        }
+        setValDate();
 
         new GetLastWork().execute();
 
@@ -144,10 +144,31 @@ public class Maintenance extends Fragment {
             }
         });
 
+        reqWorkBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (validateLatLng.check(sp)) {
+                    selectWorkListDialog();
+                } else {
+                    AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(getActivity());
+                    alertDialogBuilder.setMessage("กรุณารอข้อมูลสถานที่สักครู่");
+                    alertDialogBuilder.setNegativeButton("ตกลง",
+                            new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.cancel();
+                                }
+                            });
+                    AlertDialog alertDialog = alertDialogBuilder.create();
+                    alertDialog.show();
+                }
+            }
+        });
+
         rdyTruckCam.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (sp.getString("statuschecktruck", "").equalsIgnoreCase("")) {
+                if (valDate[0].equalsIgnoreCase(strStatus[2])) {
                     if (validateLatLng.check(sp)) {
                         selectDialog(0);
                     } else {
@@ -197,7 +218,7 @@ public class Maintenance extends Fragment {
                     }
                 } else {
                     Intent intent = new Intent(getActivity(), ImageList.class);
-                    intent.putExtra("From", ImgTms.GTYPE_MAINTENANCE);
+                    intent.putExtra("From", ImgTms.GTYPE_MTNDRIVER);
                     intent.putExtra("WOHEADER_DOCID", lastWork.getLastWork());
                     intent.putExtra("DOCID", "10");
                     intent.putExtra("DETAIL", "รายงานตัว");
@@ -207,7 +228,56 @@ public class Maintenance extends Fragment {
             }
         });
 
+        reqWorkCam.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (sp.getString("statusreqwork", "").equalsIgnoreCase("")) {
+                    if (validateLatLng.check(sp)) {
+                        selectWorkListDialog();
+                    } else {
+                        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(getActivity());
+                        alertDialogBuilder.setMessage("กรุณารอข้อมูลสถานที่สักครู่");
+                        alertDialogBuilder.setNegativeButton("ตกลง",
+                                new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        dialog.cancel();
+                                    }
+                                });
+                        AlertDialog alertDialog = alertDialogBuilder.create();
+                        alertDialog.show();
+                    }
+                } else {
+                    Intent intent = new Intent(getActivity(), ImageList.class);
+                    intent.putExtra("From", ImgTms.GTYPE_REQWORK);
+                    intent.putExtra("WOHEADER_DOCID", lastWork.getLastWork());
+                    intent.putExtra("DOCID", "10");
+                    intent.putExtra("DETAIL", "รายงานตัวล่วงหน้า");
+                    intent.putExtra("STATUS", strReqWork);
+                    Maintenance.this.startActivityForResult(intent, 2);
+                }
+            }
+        });
+
+
         return rootView;
+    }
+
+    private void setValDate() {
+        Long currentDate = Calendar.getInstance().getTimeInMillis();
+        if (currentDate / (24 * 60 * 60 * 1000) != sp.getLong("lastcheckstatus", 0) / (24 * 60 * 60 * 1000)) {
+
+            editor = sp.edit();
+            editor.putString("statuscheckdriver", "");
+            editor.putString("statusreqwork", "");
+            editor.apply();
+        }
+        valDate = sp.getString(truckId, "NONE|0").split("\\|");
+        if (currentDate / (24 * 60 * 60 * 1000) != Long.parseLong(valDate[1]) / (24 * 60 * 60 * 1000)) {
+            editor = sp.edit();
+            editor.putString(truckId, strStatus[2] + "|0");
+            editor.apply();
+        }
     }
 
     private class SaveCheckDriver extends AsyncTask<Void, Void, String> {
@@ -256,16 +326,25 @@ public class Maintenance extends Fragment {
                 editor.putString("statuscheckdriver", statusDriver);
                 editor.putLong("lastcheckstatus", Calendar.getInstance().getTimeInMillis());
                 editor.apply();
-
                 if (sp.getString("statuscheckdriver", "").equalsIgnoreCase(strStatus[0])) {
-                    readyDriverBtn.setBackgroundColor(Color.GREEN);
+                    readyDriverBtn.setBackgroundColor(getResources().getColor(R.color.custom_green));
                     readyDriverTxt.setTextColor(Color.BLACK);
                     readyDriverTxt.setText("พร้อม");
                 } else if (sp.getString("statuscheckdriver", "").equalsIgnoreCase(strStatus[1])) {
-                    readyDriverBtn.setBackgroundColor(Color.RED);
+                    readyDriverBtn.setBackgroundColor(getResources().getColor(R.color.custom_red));
                     readyDriverTxt.setTextColor(Color.WHITE);
                     readyDriverTxt.setText("ไม่พร้อม");
                 }
+                setValDate();
+
+                Intent intent = new Intent(getActivity(), ImageList.class);
+                intent.putExtra("From", ImgTms.GTYPE_MTNDRIVER);
+                intent.putExtra("WOHEADER_DOCID", lastWork.getLastWork());
+                intent.putExtra("DOCID", "10");
+                intent.putExtra("DETAIL", "รายงานตัว");
+                intent.putExtra("STATUS", readyDriverTxt.getText().toString());
+                Maintenance.this.startActivityForResult(intent, 1);
+
             } else {
                 showAlertDialog("การเชื่อมต่อผิดพลาด กรุณาลองอีกครั้ง");
             }
@@ -275,10 +354,11 @@ public class Maintenance extends Fragment {
 
     private class SaveCheckTruck extends AsyncTask<Void, Void, String> {
 
-        String resultService, statusTruck, destStatTruck, commentTruck;
+        String resultService, statusTruck, destStatTruck, commentTruck, truckId;
         ProgressDialog dialog = new ProgressDialog(getActivity());
 
-        public SaveCheckTruck(String statusTruck, String destStatTruck) {
+        public SaveCheckTruck(String truckId, String statusTruck, String destStatTruck) {
+            this.truckId = truckId;
             this.statusTruck = statusTruck;
             this.destStatTruck = destStatTruck;
             this.commentTruck = "";
@@ -286,7 +366,8 @@ public class Maintenance extends Fragment {
             dialog.setCancelable(false);
         }
 
-        public SaveCheckTruck(String statusTruck, String destStatTruck, String commentTruck) {
+        public SaveCheckTruck(String truckId, String statusTruck, String destStatTruck, String commentTruck) {
+            this.truckId = truckId;
             this.statusTruck = statusTruck;
             this.destStatTruck = destStatTruck;
             this.commentTruck = commentTruck;
@@ -316,18 +397,85 @@ public class Maintenance extends Fragment {
             super.onPostExecute(str);
             if (str.equalsIgnoreCase("true")) {
                 editor = sp.edit();
-                editor.putString("statuschecktruck", statusTruck);
-                editor.putLong("lastcheckstatus", Calendar.getInstance().getTimeInMillis());
+                long currentDate = Calendar.getInstance().getTimeInMillis();
+                //editor.putString("statuschecktruck", statusTruck);
+                editor.putString(truckId, statusTruck + "|" + currentDate);
+                editor.putLong("lastcheckstatus", currentDate);
                 editor.apply();
-                if (sp.getString("statuschecktruck", "").equalsIgnoreCase(strStatus[0])) {
-                    readyTruckBtn.setBackgroundColor(Color.GREEN);
+                if (statusTruck.equalsIgnoreCase(strStatus[0])) {
+                    readyTruckBtn.setBackgroundColor(getResources().getColor(R.color.custom_green));
                     readyTruckTxt.setTextColor(Color.BLACK);
                     readyTruckTxt.setText("พร้อม");
-                } else if (sp.getString("statuschecktruck", "").equalsIgnoreCase(strStatus[1])) {
-                    readyTruckBtn.setBackgroundColor(Color.RED);
+                } else if (statusTruck.equalsIgnoreCase(strStatus[1])) {
+                    readyTruckBtn.setBackgroundColor(getResources().getColor(R.color.custom_red));
                     readyTruckTxt.setTextColor(Color.WHITE);
                     readyTruckTxt.setText("ไม่พร้อม");
                 }
+                setValDate();
+
+                Intent intent = new Intent(getActivity(), ImageList.class);
+                intent.putExtra("From", ImgTms.GTYPE_MAINTENANCE);
+                intent.putExtra("WOHEADER_DOCID", lastWork.getLastWork());
+                intent.putExtra("DOCID", "10");
+                intent.putExtra("DETAIL", "ตรวจสภาพรถ");
+                intent.putExtra("STATUS", readyTruckTxt.getText().toString());
+                Maintenance.this.startActivityForResult(intent, 0);
+
+            } else {
+                showAlertDialog("การเชื่อมต่อผิดพลาด กรุณาลองอีกครั้ง");
+            }
+            dialog.dismiss();
+        }
+    }
+
+    private class SaveReqWork extends AsyncTask<Void, Void, String> {
+
+        ProgressDialog dialog = new ProgressDialog(getActivity());
+        String listValue, listText;
+
+        public SaveReqWork(String listValue, String listText) {
+            this.listValue = listValue;
+            this.listText = listText;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            dialog.setMessage("กรุณารอสักครู่");
+            dialog.setCancelable(false);
+            dialog.show();
+        }
+
+        @Override
+        protected String doInBackground(Void... params) {
+            String resultReqWork = new CallService().Save_ReqWork(sp.getString("truckid", ""), sp.getString("empid", ""), sp.getString("firstname", "") + " " + sp.getString("lastname", ""), String.format("%.5f,%.5f", Double.parseDouble(sp.getString("latitude", "0")), Double.parseDouble(sp.getString("longtitude", "0"))), sp.getString("locationname", ""), listValue, listText, "");
+            return resultReqWork;
+        }
+
+        @Override
+        protected void onPostExecute(String str) {
+            super.onPostExecute(str);
+            if (str.equalsIgnoreCase("true")) {
+                editor = sp.edit();
+                strReqWork = listText;
+                editor.putString("statusreqwork", listText);
+                editor.putLong("lastcheckstatus", Calendar.getInstance().getTimeInMillis());
+                editor.apply();
+                if (!sp.getString("statusreqwork", "").equalsIgnoreCase("")) {
+                    reqWorkBtn.setBackgroundColor(getResources().getColor(R.color.custom_green));
+                    reqWorkTxt.setText("รายงานตัวแล้ว");
+                }
+
+                setValDate();
+
+                Intent intent = new Intent(getActivity(), ImageList.class);
+                intent.putExtra("From", ImgTms.GTYPE_REQWORK);
+                intent.putExtra("WOHEADER_DOCID", lastWork.getLastWork());
+                intent.putExtra("DOCID", "10");
+                intent.putExtra("DETAIL", "รายงานตัวล่วงหน้า");
+                intent.putExtra("STATUS", strReqWork);
+                Maintenance.this.startActivityForResult(intent, 2);
+
             } else {
                 showAlertDialog("การเชื่อมต่อผิดพลาด กรุณาลองอีกครั้ง");
             }
@@ -358,17 +506,18 @@ public class Maintenance extends Fragment {
         protected void onPostExecute(String str) {
             super.onPostExecute(str);
             if (!str.equalsIgnoreCase("error")) {
-                if (readFileLastWork().equals("") || !getLastWorkJson(str).equalsIgnoreCase(getLastWorkJson(readFileLastWork()))) {
-                    new LastworkData().convert(str);
+                /*String strLast = readFileLastWork();
+                if (strLast == null || strLast.equals("") || !getLastWorkJson(str).equalsIgnoreCase(getLastWorkJson(strLast))) {
+                    lastWork.convert(str);
                     writeFileLastWork(str);
-                    editor = sp.edit();
+                    *//*editor = sp.edit();
                     editor.putString("statuscheckdriver", "");
                     editor.putString("statuschecktruck", "");
-                    editor.apply();
+                    editor.apply();*//*
                 } else {
-                    new LastworkData().convert(readFileLastWork());
-                }
-
+                    lastWork.convert(strLast);
+                }*/
+                lastWork.convert(str);
                 mtnContent.setVisibility(View.VISIBLE);
                 loadingProgress.setVisibility(View.INVISIBLE);
             } else {
@@ -379,26 +528,34 @@ public class Maintenance extends Fragment {
             }
 
             if (sp.getString("statuscheckdriver", "").equalsIgnoreCase(strStatus[0])) {
-                readyDriverBtn.setBackgroundColor(Color.GREEN);
+                readyDriverBtn.setBackgroundColor(getResources().getColor(R.color.custom_green));
                 readyDriverTxt.setTextColor(Color.BLACK);
                 readyDriverTxt.setText("พร้อม");
             } else if (sp.getString("statuscheckdriver", "").equalsIgnoreCase(strStatus[1])) {
-                readyDriverBtn.setBackgroundColor(Color.RED);
+                readyDriverBtn.setBackgroundColor(getResources().getColor(R.color.custom_red));
                 readyDriverTxt.setTextColor(Color.WHITE);
                 readyDriverTxt.setText("ไม่พร้อม");
             } else {
                 readyDriverTxt.setText("พร้อม / ไม่พร้อม");
             }
-            if (sp.getString("statuschecktruck", "").equalsIgnoreCase(strStatus[0])) {
-                readyTruckBtn.setBackgroundColor(Color.GREEN);
+            final String valDate[] = sp.getString(truckId, "NONE|0").split("\\|");
+            if (valDate[0].equalsIgnoreCase(strStatus[0])) {
+                readyTruckBtn.setBackgroundColor(getResources().getColor(R.color.custom_green));
                 readyTruckTxt.setTextColor(Color.BLACK);
                 readyTruckTxt.setText("พร้อม");
-            } else if (sp.getString("statuschecktruck", "").equalsIgnoreCase(strStatus[1])) {
-                readyTruckBtn.setBackgroundColor(Color.RED);
+            } else if (valDate[0].equalsIgnoreCase(strStatus[1])) {
+                readyTruckBtn.setBackgroundColor(getResources().getColor(R.color.custom_red));
                 readyTruckTxt.setTextColor(Color.WHITE);
                 readyTruckTxt.setText("ไม่พร้อม");
             } else {
                 readyTruckTxt.setText("พร้อม / ไม่พร้อม");
+            }
+            if (!sp.getString("statusreqwork", "").equalsIgnoreCase("")) {
+                strReqWork = sp.getString("statusreqwork", "");
+                reqWorkBtn.setBackgroundColor(getResources().getColor(R.color.custom_green));
+                reqWorkTxt.setText("รายงานตัวแล้ว");
+            } else {
+                reqWorkTxt.setText("รายงานตัว");
             }
         }
 
@@ -456,20 +613,45 @@ public class Maintenance extends Fragment {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 if (which == 1) {
-                    commentDialog(index);
+                    commentDialog(index, "", "");
                 } else if (index == 0) {
-                    new SaveCheckTruck(strStatus[which], adapt.getItem(which)).execute();
+                    new SaveCheckTruck(truckId, strStatus[which], adapt.getItem(which)).execute();
                 } else new SaveCheckDriver(strStatus[which], adapt.getItem(which)).execute();
             }
         });
         alertDialog.show();
     }
 
-    private void commentDialog(final int index) {
+    private void selectWorkListDialog() {
+        AlertDialog.Builder alertDialog = new AlertDialog.Builder(getActivity());
+        final ArrayAdapter<String> adapt = new ArrayAdapter<>(getActivity(), android.R.layout.select_dialog_singlechoice);
+        final ArrayList<img_tms.WorkList> workLists = ImgTms.GetActiveWorkList();
+        for (int i = 0; i < workLists.size(); ++i) {
+            adapt.add(workLists.get(i).list_name);
+        }
+        alertDialog.setNegativeButton("ยกเลิก",
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                });
+        alertDialog.setAdapter(adapt, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                //workLists.get(which)
+                new SaveReqWork(workLists.get(which).list_id, workLists.get(which).list_name).execute();
+                //commentDialog(2, workLists.get(which).list_id, workLists.get(which).list_name);
+            }
+        });
+        alertDialog.show();
+    }
+
+    private void commentDialog(final int index, final String listValue, final String listText) {
 
         editor = sp.edit();
         AlertDialog.Builder alert = new AlertDialog.Builder(getActivity());
-        alert.setTitle("ใส่เหตุผลที่ไม่พร้อม");
+        alert.setTitle(index == 2 ? "หมายเหตุ" : "ใส่เหตุผลที่ไม่พร้อม");
         View view = getActivity().getLayoutInflater().inflate(R.layout.dialog_comment, null);
         input = (AutoCompleteTextView) view.findViewById(R.id.inputComment);
         input.setThreshold(1);
@@ -530,8 +712,12 @@ public class Maintenance extends Fragment {
                 }
                 editor.apply();
                 if (index == 0) {
-                    new SaveCheckTruck(strStatus[1], "ไม่พร้อม", comment).execute();
-                } else new SaveCheckDriver(strStatus[1], "ไม่พร้อม", comment).execute();
+                    new SaveCheckTruck(truckId, strStatus[1], "ไม่พร้อม", comment).execute();
+                } else if (index == 1) {
+                    new SaveCheckDriver(strStatus[1], "ไม่พร้อม", comment).execute();
+                } else if (index == 2) {
+                    //new SaveReqWork(comment, listValue, listText).execute();
+                }
             }
         });
         alert.setNeutralButton("# รูปแบบข้อความ", new DialogInterface.OnClickListener() {
@@ -558,6 +744,8 @@ public class Maintenance extends Fragment {
                 ArrayList<img_tms.Hashtag_TMS> Hash;
                 if (index == 0) {
                     Hash = ImgTms.GetHashtagByGtypeAndImgType(ImgTms.GTYPE_MAINTENANCE, ImgTms.IMG_MTNTRUCKREJECT);
+                } else if (index == 1) {
+                    Hash = ImgTms.GetHashtagByGtypeAndImgType(ImgTms.GTYPE_MAINTENANCE, ImgTms.IMG_MTNDRIVERREJECT);
                 } else {
                     Hash = ImgTms.GetHashtagByGtypeAndImgType(ImgTms.GTYPE_MAINTENANCE, ImgTms.IMG_MTNDRIVERREJECT);
                 }

@@ -20,7 +20,9 @@
     <string name="menu.check">ตรวจสภาพ / รายงานตัว</string>
     <string name="menu.sick">การลา</string>
     <string name="menu.cam">ถ่ายรูป</string>
+    <string name="menu.scanqr">สแกนเอกสาร</string>
     <string name="menu.reserve.weight">จองคิวห้องชั่ง</string>
+    <string name="menu.hrms">การลา</string>
     <string name="menu.logout">ออกจากระบบ</string>
 
     <string name="noresult">[]</string>
@@ -42,15 +44,14 @@
     </string-array>
 
     <string-array name="list_pic">
-        <item>1. สถานี</item>
+        <item>1. สถานที่รับ/ส่ง</item>
         <item>2. สินค้า</item>
         <item>3. เอกสาร</item>
-        <item>4. รถ</item>
+        <item>4. ระหว่างเดินทาง</item>
         <item>5. ห้องชั่ง</item>
         <item>6. ล้างรถ</item>
-        <item>7. แจ้งปัญหา</item>
-        <item>8. อุบัติเหตุ</item>
-        <item>9. อื่นๆ</item>
+        <item>7. แจ้งปัญหา/อุบัติเหตุ</item>
+        <item>8. อื่นๆ</item>
     </string-array>
 
     <string-array name="list_signature">
@@ -61,8 +62,17 @@
     <string-array name="list_maintenance">
         <item>1. รถ</item>
         <item>2. อุปกรณ์ประจำรถ</item>
-        <item>3. พนักงาน</item>
-        <item>4. อื่นๆ</item>
+        <item>3. อื่นๆ</item>
+    </string-array>
+
+    <string-array name="list_mtndriver">
+        <item>1. พนักงาน</item>
+        <item>2. อื่นๆ</item>
+    </string-array>
+
+    <string-array name="list_reqwork">
+        <item>1. พนักงาน</item>
+        <item>2. อื่นๆ</item>
     </string-array>
 
     <string-array name="submited_array">

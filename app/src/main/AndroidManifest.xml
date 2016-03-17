@@ -26,7 +26,8 @@
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:theme="@style/AppTheme">
+        android:theme="@style/AppTheme"
+        android:largeHeap="true">
         <activity
             android:name=".SplashScreen"
             android:label="@string/app_name"
@@ -64,11 +65,12 @@
         <activity
             android:name=".Signature_Pad"
             android:label="ลายเซ็น" />
-
         <service
             android:name=".service.UploadPic"
             android:enabled="true"
             android:label="Upload Picture" />
+        <meta-data
+            android:name="io.fabric.ApiKey"
+            android:value="5c9c18254c5a4d0ba47db105684bd6bb4ffcd6a0" />
     </application>
-
 </manifest>
