@@ -6,11 +6,11 @@ android {
     buildToolsVersion "22.0.1"
 
     defaultConfig {
-        applicationId "mibh.mis.tms"
+        applicationId "mibh.mis.tmsland"
         minSdkVersion 17
         targetSdkVersion 21
         versionCode 1
-        versionName "2.37"
+        versionName "2.40"
     }
     buildTypes {
         release {

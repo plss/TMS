@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingLeft="16dp"
+    android:paddingTop="16dp"
+    android:paddingRight="16dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="เลขไมล์"
+        android:textSize="@dimen/abc_text_size_medium_material"
+        android:layout_marginBottom="8dp"
+        android:textColor="#000" />
+
+    <EditText
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/etMileClose"
+        android:background="#FFF"
+        android:textSize="@dimen/abc_text_size_medium_material"
+        android:padding="8dp"
+        android:layout_gravity="center_vertical"
+        android:inputType="number"
+        android:lines="1"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="New Text"
+        android:id="@+id/tvProductClose"
+        android:textSize="@dimen/abc_text_size_medium_material"
+        android:layout_marginBottom="8dp"
+        android:textColor="#000" />
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp">
+
+        <EditText
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:id="@+id/etWeightInput"
+            android:layout_weight="1"
+            android:background="#FFF"
+            android:textSize="@dimen/abc_text_size_medium_material"
+            android:padding="8dp"
+            android:layout_gravity="center_vertical"
+            android:inputType="number"
+            android:lines="1" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="กก."
+            android:id="@+id/textView16"
+            android:layout_gravity="center_vertical"
+            android:layout_marginLeft="16dp"
+            android:textStyle="bold"
+            android:textSize="@dimen/abc_text_size_medium_material"
+            android:textColor="#000" />
+    </LinearLayout>
+
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="ยืนยันปิดงาน"
+        android:id="@+id/cbCloseWrok"
+        android:textSize="@dimen/abc_text_size_medium_material"
+        android:padding="8dp" />
+</LinearLayout>
